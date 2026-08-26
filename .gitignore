@@ -1,0 +1,14 @@
+# secrets
+.env
+
+# data
+data/
+*.sqlite
+*.sqlite-*
+
+# deps
+node_modules/
+
+# misc
+*.log
+.DS_Store

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NIX Scoreboard</title>
+  <script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;document.documentElement.classList.add('js');}catch(e){document.documentElement.dataset.theme='light';}})();</script>
+  <link rel="stylesheet" href="/style.css" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f5fa" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141822" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔪</text></svg>" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="app-header"></div>
+
+  <main>
+    <section id="setup-view" class="card hidden">
+      <h1>Pick your nix name</h1>
+      <p class="muted">This is the name that shows on the board — not your Discord name.</p>
+      <form id="setup-form" class="row">
+        <input id="setup-name" type="text" maxlength="32" placeholder="e.g. Alex" autocomplete="off" required />
+        <button class="btn" type="submit">Set name</button>
+      </form>
+      <p id="setup-err" class="error"></p>
+    </section>
+
+    <section id="board-view" class="stack hidden">
+      <div class="page-head">
+        <div>
+          <h1>Board</h1>
+          <p>Who is doing the nixing.</p>
+        </div>
+        <div class="head-actions">
+          <span id="last-refreshed" class="refresh-note"></span>
+          <button class="btn btn-ghost" id="refresh-btn" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div id="nemesis-banner" class="nemesis-banner hidden"></div>
+
+      <div class="card report">
+        <h2>Report a nix</h2>
+        <form id="nix-form" class="row">
+          <select id="nix-target" aria-label="Choose someone to nix" required></select>
+          <button class="btn" type="submit">I nixed them</button>
+        </form>
+        <p id="nix-msg" class="muted"></p>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Top nixers</h2>
+          <ol id="leaderboard" class="list"></ol>
+        </div>
+        <div class="card">
+          <h2>Most nixed</h2>
+          <ol id="most-nixed" class="list"></ol>
+        </div>
+        <div class="card">
+          <h2>Top pairs</h2>
+          <ol id="top-pairs" class="list"></ol>
+        </div>
+        <div class="card">
+          <h2>🔥 On a streak</h2>
+          <ol id="streaks" class="list"></ol>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent nixes</h2>
+        <ul id="recent" class="feed"></ul>
+        <button class="btn btn-ghost" id="recent-more" type="button" hidden>Load more</button>
+      </div>
+    </section>
+  </main>
+  <footer class="page-foot">made with <a href="/nix">nix</a></footer>
+
+  <div class="modal-backdrop hidden" id="undo-modal">
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="undo-modal-title">
+      <h2 id="undo-modal-title">Revoke this nix?</h2>
+      <p id="undo-modal-msg" class="muted"></p>
+      <div class="row">
+        <button class="btn btn-ghost" id="undo-cancel" type="button">Keep it</button>
+        <button class="btn btn-danger" id="undo-confirm" type="button">Revoke nix</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/header.js"></script>
+  <script src="/theme.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

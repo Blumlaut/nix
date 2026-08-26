@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statistics — NIX Scoreboard</title>
+  <script>(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;document.documentElement.classList.add('js');}catch(e){document.documentElement.dataset.theme='light';}})();</script>
+  <link rel="stylesheet" href="/style.css" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f5fa" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141822" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔪</text></svg>" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div id="app-header"></div>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Statistics</h1>
+        <p>Nixes over time.</p>
+      </div>
+      <div class="seg" id="range-seg" role="group" aria-label="Time range">
+        <button type="button" data-range="7d">7 days</button>
+        <button type="button" data-range="30d" class="active">30 days</button>
+        <button type="button" data-range="90d">90 days</button>
+        <button type="button" data-range="all">All</button>
+      </div>
+    </div>
+
+    <section class="card contrib-block">
+      <div class="contrib-head">
+        <h2><span id="contrib-total" class="contrib-count">–</span> nixes in the last year</h2>
+        <p class="sub">Your nixing activity · last 12 months</p>
+      </div>
+      <div class="contrib-scroll">
+        <div class="contrib-wrap">
+          <div class="contrib-weekdays" id="contrib-weekdays" aria-hidden="true"></div>
+          <div class="contrib-canvas">
+            <div class="contrib-months" id="contrib-months" aria-hidden="true"></div>
+            <div class="contrib-grid" id="contrib-grid" aria-label="Your nixes per day over the last year"></div>
+          </div>
+        </div>
+      </div>
+      <div class="contrib-foot" aria-hidden="true">
+        <span class="contrib-legend-label">Less</span>
+        <span class="contrib-legend-squares">
+          <i class="lvl-0"></i><i class="lvl-1"></i><i class="lvl-2"></i><i class="lvl-3"></i><i class="lvl-4"></i>
+        </span>
+        <span class="contrib-legend-label">More</span>
+      </div>
+    </section>
+
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <div class="card chart-block">
+      <h2>Nix streaks</h2>
+      <p class="sub">Who is on a streak against whom — only the target can break it</p>
+      <table class="streak-table">
+        <thead>
+          <tr><th>Player</th><th>Against</th><th class="num">Streak</th><th class="num">Best</th></tr>
+        </thead>
+        <tbody id="streak-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card chart-block">
+      <h2 id="chart-title">Nixes per day</h2>
+      <p class="sub" id="perday-sub"></p>
+      <div class="chart">
+        <div class="bars" id="bars"></div>
+        <div class="xlabels" id="xlabels"></div>
+      </div>
+    </div>
+
+    <div class="card chart-block">
+      <h2>Cumulative nixes</h2>
+      <p class="sub" id="cum-sub"></p>
+      <div class="linechart" id="line-wrap"></div>
+      <div class="xlabels" id="line-xlabels"></div>
+    </div>
+  </main>
+  <footer class="page-foot">made with <a href="/nix">nix</a></footer>
+
+  <script src="/header.js"></script>
+  <script src="/theme.js"></script>
+  <script src="/stats.js"></script>
+</body>
+</html>
