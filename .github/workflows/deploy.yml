@@ -19,8 +19,12 @@ jobs:
             cd /opt/nix
             echo "--- git pull ---"
             git pull origin main
-            echo "--- npm install ---"
-            npm install --omit=dev
+            echo "--- install (all deps incl. build tooling) ---"
+            npm ci
+            echo "--- build frontend (vite) ---"
+            npm run build
+            echo "--- prune runtime-only deps ---"
+            npm prune --omit=dev
             echo "--- restart ---"
             systemctl restart nix-scoreboard
             sleep 2

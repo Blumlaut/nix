@@ -9,6 +9,9 @@ data/
 # deps
 node_modules/
 
+# frontend build output
+web/dist/
+
 # misc
 *.log
 .DS_Store
