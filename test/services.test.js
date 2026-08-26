@@ -117,6 +117,118 @@ test('profile assembles user data', () => {
   assert.ok(p.xp);
 });
 
+function freshUser(discordId, name) {
+  db.prepare('INSERT OR IGNORE INTO users (discord_id, name, name_ci) VALUES (?, ?, ?)')
+    .run(discordId, name, name.toLowerCase());
+  return q.userByDiscord.get(discordId);
+}
+
+test('battlepass tiers unlock by level (total XP), not season', () => {
+  const carol = freshUser('discord-carol', 'Carol');
+
+  let xp = prog.getUserXp(carol.id);
+  assert.equal(xp.totalXp, 0);
+  assert.equal(xp.level, 1);
+  assert.ok(!('seasonXp' in xp) && !('season' in xp), 'no season XP track remains');
+
+  let bp = prog.getBattlepass(carol.id);
+  assert.ok(bp.tiers[0].unlocked, 'tier 1 is free');
+  assert.ok(!bp.tiers[1].unlocked, 'tier 2 locked at level 1');
+
+  prog.awardXp(carol.id, 200); // → level 2
+  bp = prog.getBattlepass(carol.id);
+  assert.equal(bp.level, 2);
+  assert.ok(bp.tiers[1].unlocked, 'tier 2 unlocks at level 2');
+  assert.ok(!bp.tiers[2].unlocked, 'tier 3 still locked');
+
+  prog.awardXp(carol.id, 270); // → 470 total → level 3
+  xp = prog.getUserXp(carol.id);
+  assert.equal(xp.totalXp, 470);
+  assert.equal(xp.level, 3);
+  bp = prog.getBattlepass(carol.id);
+  assert.ok(bp.tiers[2].unlocked, 'tier 3 unlocks at 400 total XP');
+  assert.equal(bp.totalXp, 470);
+});
+
+test('battlepass claim requires the tier level and is stored per user+tier', () => {
+  const dave = freshUser('discord-dave', 'Dave');
+
+  assert.deepEqual(prog.claimBpTier(dave.id, 2), { error: 'not unlocked yet' });
+
+  prog.awardXp(dave.id, 200); // level 2
+  assert.deepEqual(prog.claimBpTier(dave.id, 2), { ok: true });
+  assert.deepEqual(prog.claimBpTier(dave.id, 2), { error: 'already claimed' });
+
+  assert.equal(prog.getUserCosmetics(dave.id).border, 'blue', 'claimed tier 2 grants the blue border');
+  assert.equal(prog.getBattlepass(dave.id).highestTier, 2);
+});
+
+test('open() migrates legacy season-based battlepass tables', () => {
+  const dbPath = path.join(os.tmpdir(), `nix-bp-legacy-${process.pid}.sqlite`);
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+
+  // Old layout: season XP track + per-season claims.
+  const legacy = new (require('better-sqlite3'))(dbPath);
+  legacy.exec(`
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      discord_id TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      name_ci TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE user_xp (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      total_xp INTEGER NOT NULL DEFAULT 0,
+      season_xp INTEGER NOT NULL DEFAULT 0,
+      season TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE bp_claims (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      season TEXT NOT NULL,
+      tier INTEGER NOT NULL,
+      claimed_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, season, tier)
+    );
+  `);
+  legacy.prepare('INSERT INTO users (discord_id, name, name_ci) VALUES (?, ?, ?)').run('d1', 'Alice', 'alice');
+  // Level-3 player (470 XP) who claimed tier 1 in two seasons and tier 2 in one.
+  legacy.prepare('INSERT INTO user_xp (user_id, total_xp, season_xp, season) VALUES (?, 470, 0, ?)').run(1, '2026-07');
+  legacy.prepare('INSERT INTO bp_claims (user_id, season, tier) VALUES (?, ?, ?)').run(1, '2026-06', 1);
+  legacy.prepare('INSERT INTO bp_claims (user_id, season, tier) VALUES (?, ?, ?)').run(1, '2026-07', 1);
+  legacy.prepare('INSERT INTO bp_claims (user_id, season, tier) VALUES (?, ?, ?)').run(1, '2026-07', 2);
+  legacy.close();
+
+  const db2 = open(dbPath);
+  const q2 = prepareAll(db2);
+  const prog2 = createProgressionService(db2, q2);
+
+  const xpCols = db2.prepare('PRAGMA table_info(user_xp)').all().map((c) => c.name);
+  assert.deepEqual(xpCols, ['user_id', 'total_xp'], 'season columns dropped from user_xp');
+
+  const bpCols = db2.prepare('PRAGMA table_info(bp_claims)').all().map((c) => c.name);
+  assert.ok(bpCols.includes('user_id') && bpCols.includes('tier') && bpCols.includes('claimed_at'));
+  assert.ok(!bpCols.includes('season'), 'season column dropped from bp_claims');
+
+  const tiers = q2.bpClaims.all(1).map((c) => c.tier).sort((a, b) => a - b);
+  assert.deepEqual(tiers, [1, 2], 'claims carried over, deduped per user+tier');
+
+  const xp = prog2.getUserXp(1);
+  assert.equal(xp.totalXp, 470);
+  assert.equal(xp.level, 3);
+
+  const bp = prog2.getBattlepass(1);
+  assert.equal(bp.level, 3);
+  assert.ok(bp.tiers[0].unlocked && bp.tiers[0].claimed);
+  assert.ok(bp.tiers[1].unlocked && bp.tiers[1].claimed);
+  assert.ok(bp.tiers[2].unlocked && !bp.tiers[2].claimed, 'tier 3 unlocked by level, not yet claimed');
+  assert.equal(bp.highestTier, 3);
+
+  db2.close();
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+});
+
 test('open() migrates a legacy (hand-rolled) sessions table', () => {
   const dbPath = path.join(os.tmpdir(), `nix-legacy-${process.pid}.sqlite`);
   for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
@@ -129,11 +241,21 @@ test('open() migrates a legacy (hand-rolled) sessions table', () => {
   const migrated = open(dbPath);
 
   // Mirror app.js: the session store creates/recreates the sessions table.
+  // The store's constructor schedules a non-unref'd setInterval cleanup
+  // timer (15 min) and exposes no handle to clear it — so intercept
+  // setInterval while constructing, or the test process never exits.
   const SqliteStore = require('better-sqlite3-session-store')(require('express-session'));
-  const store = new SqliteStore({ client: migrated });
+  const origSetInterval = global.setInterval;
+  let intervalMs;
+  global.setInterval = (fn, ms) => { intervalMs = ms; return { fn, ms }; };
+  try {
+    new SqliteStore({ client: migrated });
+  } finally {
+    global.setInterval = origSetInterval;
+  }
+  assert.ok(Number.isFinite(intervalMs) && intervalMs > 0, 'store schedules expired-session cleanup');
 
   const cols = migrated.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
-  store.clearExpired && store.clearExpired();
   migrated.close();
 
   assert.ok(cols.includes('sess'), 'new store column `sess` present');
