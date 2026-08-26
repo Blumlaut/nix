@@ -36,7 +36,7 @@ export default function Header() {
           <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>
         ))}
       </nav>
-      <div className="hdr-right">
+      <Box className="hdr-right" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Tooltip title="Toggle theme">
           <IconButton
             className="theme-toggle"
@@ -78,7 +78,7 @@ export default function Header() {
             <MenuItem component="a" href="/logout">Logout</MenuItem>
           </Menu>
         </Box>
-      </div>
+      </Box>
     </header>
   );
 }

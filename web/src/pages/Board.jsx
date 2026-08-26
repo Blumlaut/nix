@@ -24,7 +24,7 @@ const POLL_MS = 20000;
 
 function CountedList({ rows, empty, render }) {
   if (!rows.length) return <li className="empty">{empty}</li>;
-  return rows.map((r, i) => <li key={i}>{render(r)}</li>);
+  return rows.map((r, i) => render(r, i));
 }
 
 export default function Board() {
@@ -119,8 +119,8 @@ export default function Board() {
             <CountedList
               rows={board.leaderboard}
               empty="No users yet."
-              render={(r) => (
-                <li className={`user-row${r.border ? ` border-${r.border}` : ''}`}>
+              render={(r, i) => (
+                <li key={i} className={`user-row${r.border ? ` border-${r.border}` : ''}`}>
                   <Link className="user-link" to={`/user/${r.uid}`}>
                     <span className="uname">{r.name}</span>
                     {r.title && <span className="bp-title">{r.title}</span>}
@@ -144,8 +144,8 @@ export default function Board() {
             <CountedList
               rows={board.mostNixed}
               empty="No nixes yet."
-              render={(r) => (
-                <li><Link className="feed-user" to={`/user/${r.uid}`}>{r.name}</Link><span className="n">{r.n}</span></li>
+              render={(r, i) => (
+                <li key={i}><Link className="feed-user" to={`/user/${r.uid}`}>{r.name}</Link><span className="n">{r.n}</span></li>
               )}
             />
           </ol>
@@ -158,8 +158,8 @@ export default function Board() {
             <CountedList
               rows={board.topPairs}
               empty="No nixes yet."
-              render={(r) => (
-                <li>
+              render={(r, i) => (
+                <li key={i}>
                   <span className="pair">
                     <Link className="feed-user" to={`/user/${r.auid}`}><b>{r.nixer}</b></Link>
                     {' '}<span className="verb">nixed</span>{' '}
@@ -179,8 +179,8 @@ export default function Board() {
             <CountedList
               rows={board.streaks}
               empty="Nobody's on a streak right now."
-              render={(r) => (
-                <li><Link className="feed-user" to={`/user/${r.id}`}>{r.name}</Link><span className="n">🔥 {r.streak}</span></li>
+              render={(r, i) => (
+                <li key={i}><Link className="feed-user" to={`/user/${r.id}`}>{r.name}</Link><span className="n">🔥 {r.streak}</span></li>
               )}
             />
           </ol>
