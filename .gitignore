@@ -5,6 +5,8 @@
 data/
 *.sqlite
 *.sqlite-*
+# generated VAPID keypair (contains a private key)
+vapid.json
 
 # deps
 node_modules/

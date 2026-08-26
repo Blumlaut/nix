@@ -116,3 +116,29 @@ test('profile assembles user data', () => {
   assert.ok(Array.isArray(p.topTargets));
   assert.ok(p.xp);
 });
+
+test('open() migrates a legacy (hand-rolled) sessions table', () => {
+  const dbPath = path.join(os.tmpdir(), `nix-legacy-${process.pid}.sqlite`);
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+
+  // Simulate the old store: sessions (sid, data, expires)
+  const legacy = new (require('better-sqlite3'))(dbPath);
+  legacy.exec('CREATE TABLE sessions (sid TEXT PRIMARY KEY, data TEXT NOT NULL, expires INTEGER NOT NULL DEFAULT 0)');
+  legacy.close();
+
+  const migrated = open(dbPath);
+
+  // Mirror app.js: the session store creates/recreates the sessions table.
+  const SqliteStore = require('better-sqlite3-session-store')(require('express-session'));
+  const store = new SqliteStore({ client: migrated });
+
+  const cols = migrated.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
+  store.clearExpired && store.clearExpired();
+  migrated.close();
+
+  assert.ok(cols.includes('sess'), 'new store column `sess` present');
+  assert.ok(!cols.includes('data'), 'legacy `data` column removed');
+  assert.ok(cols.includes('expire'), 'new store column `expire` present');
+
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+});
