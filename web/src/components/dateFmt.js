@@ -22,14 +22,16 @@ function splitBucket(d) {
   return d.includes(' ') ? d.split(' ') : [d, null];
 }
 
+// Sub-day buckets arrive as 'YYYY-MM-DD HH:00' (already zero-padded);
+// slice to HH:MM so we never emit '00:00:00'-style labels.
 export function fmtShortB(d, bucket) {
   const [date, hh] = splitBucket(d);
-  return bucket === '1d' ? fmtShort(date) : `${fmtShort(date)} ${hh}:00`;
+  return bucket === '1d' || !hh ? fmtShort(date) : `${fmtShort(date)} ${hh.slice(0, 5)}`;
 }
 
 export function fmtFullB(d, bucket) {
   const [date, hh] = splitBucket(d);
-  return bucket === '1d' ? fmtFull(date) : `${fmtFull(date)} ${hh}:00`;
+  return bucket === '1d' || !hh ? fmtFull(date) : `${fmtFull(date)} ${hh.slice(0, 5)}`;
 }
 
 export function rangeLabel(r) {

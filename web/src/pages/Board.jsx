@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  Grid,
   InputLabel,
   MenuItem,
   Select,
@@ -110,7 +111,8 @@ export default function Board() {
         <NixForm me={me} board={board} onResult={(msg) => setNixMsg(msg)} onNixed={loadBoard} />
       </div>
 
-      <div className="grid">
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card">
           <h2>Top nixers</h2>
           <ol className="list">
@@ -134,7 +136,9 @@ export default function Board() {
             />
           </ol>
         </div>
-        <div className="card">
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
+        <div className="card" id="most-nixed">
           <h2>Most nixed</h2>
           <ol className="list">
             <CountedList
@@ -146,6 +150,8 @@ export default function Board() {
             />
           </ol>
         </div>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card">
           <h2>Top pairs</h2>
           <ol className="list">
@@ -165,6 +171,8 @@ export default function Board() {
             />
           </ol>
         </div>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card">
           <h2>🔥 On a streak</h2>
           <ol className="list">
@@ -177,7 +185,8 @@ export default function Board() {
             />
           </ol>
         </div>
-      </div>
+        </Grid>
+      </Grid>
 
       <div className="card">
         <h2>Recent nixes</h2>
