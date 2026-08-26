@@ -37,6 +37,47 @@ function migrateSessionsTable(db) {
 }
 
 /**
+ * Migrate the old season-based battlepass tables to the level-based layout.
+ *
+ * Unlocks used to key off a per-season XP track (`user_xp.season_xp` and
+ * `bp_claims.season`). They are now driven by total XP / level, so the
+ * season columns are dropped. Levels never decrease, so past tier claims
+ * stay valid and are carried over (deduped to one row per user + tier).
+ */
+function migrateBattlepassTables(db) {
+  const xpCols = db.prepare('PRAGMA table_info(user_xp)').all().map((c) => c.name);
+  if (xpCols.includes('season_xp')) {
+    console.warn('[nix] dropping user_xp.season_xp (battlepass now level-based)');
+    db.exec('ALTER TABLE user_xp DROP COLUMN season_xp');
+  }
+  if (xpCols.includes('season')) {
+    db.exec('ALTER TABLE user_xp DROP COLUMN season');
+  }
+
+  const hasBp = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='bp_claims'"
+  ).get();
+  if (!hasBp) return;
+
+  const bpCols = db.prepare('PRAGMA table_info(bp_claims)').all().map((c) => c.name);
+  if (!bpCols.includes('season')) return;
+
+  console.warn('[nix] rebuilding bp_claims without season (claims now persist for life)');
+  db.exec(`
+    CREATE TABLE bp_claims_new (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tier INTEGER NOT NULL,
+      claimed_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, tier)
+    );
+    INSERT OR REPLACE INTO bp_claims_new (user_id, tier, claimed_at)
+      SELECT user_id, tier, MIN(claimed_at) FROM bp_claims GROUP BY user_id, tier;
+    DROP TABLE bp_claims;
+    ALTER TABLE bp_claims_new RENAME TO bp_claims;
+  `);
+}
+
+/**
  * Open (creating if needed) the SQLite database, apply the schema and seed
  * the achievement catalog. Returns the live better-sqlite3 connection.
  *
@@ -52,6 +93,7 @@ function open(dbPath) {
   db.pragma('busy_timeout = 5000');
 
   migrateSessionsTable(db);
+  migrateBattlepassTables(db);
   db.exec(SCHEMA);
   seedAchievements(db);
 

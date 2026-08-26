@@ -53,18 +53,17 @@ const SCHEMA = `
     unlocked_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, achievement_id)
   );
+  -- Battle pass unlocks are tied to total XP / level, not a per-season
+  -- track, so there is no season state here.
   CREATE TABLE IF NOT EXISTS user_xp (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    total_xp INTEGER NOT NULL DEFAULT 0,
-    season_xp INTEGER NOT NULL DEFAULT 0,
-    season TEXT NOT NULL DEFAULT ''
+    total_xp INTEGER NOT NULL DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS bp_claims (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    season TEXT NOT NULL,
     tier INTEGER NOT NULL,
     claimed_at TEXT NOT NULL DEFAULT (datetime('now')),
-    PRIMARY KEY (user_id, season, tier)
+    PRIMARY KEY (user_id, tier)
   );
   CREATE TABLE IF NOT EXISTS threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

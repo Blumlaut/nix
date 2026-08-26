@@ -133,13 +133,14 @@ function RecentActivity({ activity, uid, name }) {
 }
 
 function Battlepass({ bp, claimed, onClaim }) {
-  const pct = Math.min(100, (bp.seasonXp / 1800) * 100);
+  const maxTier = bp.tiers.length;
+  const pct = bp.level >= maxTier ? 100 : Math.round(bp.levelProgress * 100);
   return (
     <section className="card prof-section">
       <h2>🎮 Battlepass</h2>
       <div className="bp-bar-wrap">
         <LinearProgress variant="determinate" value={pct} />
-        <span className="bp-bar-label">{bp.seasonXp} / 1800 XP</span>
+        <span className="bp-bar-label">Level {bp.level} / {maxTier}</span>
       </div>
       <div className="bp-list">
         {bp.tiers.map((t) => {

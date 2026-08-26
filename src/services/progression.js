@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Progression system: nemesis, XP/levels, achievements and the season
- * battle pass. All thresholds and constants live here.
+ * Progression system: nemesis, XP/levels, achievements and the battle
+ * pass (tiers unlock by level / total XP). All thresholds and constants
+ * live here.
  */
 
 const XP_GIVEN = 50;
@@ -11,6 +12,8 @@ const XP_ACH = 100;
 const XP_DAILY = 10;
 const XP_PER_LEVEL = 200;
 
+// `xp` is a total-XP threshold; with 200 XP per level, tier N unlocks at
+// level N.
 const BP_TIERS = [
   { tier: 1, name: 'Rookie', xp: 0, reward: 'title', value: 'Rookie' },
   { tier: 2, name: 'Blue Border', xp: 200, reward: 'border', value: 'blue' },
@@ -25,10 +28,6 @@ const BP_TIERS = [
 ];
 
 function createProgressionService(db, q) {
-  function currentSeason() {
-    return new Date().toISOString().slice(0, 7);
-  }
-
   function levelFromXp(xp) {
     return Math.floor(xp / XP_PER_LEVEL) + 1;
   }
@@ -48,27 +47,20 @@ function createProgressionService(db, q) {
 
   // ── XP / levels ─────────────────────────────────────────────────────────
   function getUserXp(userId) {
-    const season = currentSeason();
-    let row = q.xpByUser.get(userId);
+    const row = q.xpByUser.get(userId);
     if (!row) {
-      q.insertXp.run(userId, season);
-      return { totalXp: 0, seasonXp: 0, season, level: 1, levelProgress: 0 };
-    }
-    if (row.season !== season) {
-      q.resetSeasonXp.run(season, userId);
-      row = { ...row, season_xp: 0, season };
+      q.insertXp.run(userId);
+      return { totalXp: 0, level: 1, levelProgress: 0 };
     }
     return {
       totalXp: row.total_xp,
-      seasonXp: row.season_xp,
-      season,
       level: levelFromXp(row.total_xp),
       levelProgress: (row.total_xp % XP_PER_LEVEL) / XP_PER_LEVEL,
     };
   }
 
   function awardXp(userId, amount) {
-    q.awardXp.run(userId, amount, amount, currentSeason());
+    q.awardXp.run(userId, amount);
   }
 
   function awardNixXp(giverId, receiverId) {
@@ -138,17 +130,18 @@ function createProgressionService(db, q) {
   // ── Battle pass / cosmetics ─────────────────────────────────────────────
   function getBattlepass(userId) {
     const xp = getUserXp(userId);
-    const claims = new Set(q.bpClaims.all(userId, xp.season).map((c) => c.tier));
+    const claims = new Set(q.bpClaims.all(userId).map((c) => c.tier));
     const tiers = BP_TIERS.map((t) => ({
       ...t,
-      unlocked: xp.seasonXp >= t.xp,
+      unlocked: xp.totalXp >= t.xp,
       claimed: claims.has(t.tier),
     }));
     const highest = tiers.filter((t) => t.unlocked).pop();
     const active = cosmeticsFromClaims(tiers);
     return {
-      season: xp.season,
-      seasonXp: xp.seasonXp,
+      totalXp: xp.totalXp,
+      level: xp.level,
+      levelProgress: xp.levelProgress,
       tiers,
       highestTier: highest ? highest.tier : 0,
       activeTitle: active.title,
@@ -158,8 +151,7 @@ function createProgressionService(db, q) {
   }
 
   function getUserCosmetics(userId) {
-    const season = currentSeason();
-    const claims = q.bpClaims.all(userId, season);
+    const claims = q.bpClaims.all(userId);
     if (!claims.length) return { title: null, border: null, badge: null };
     const tiers = BP_TIERS.map((t) => ({
       ...t,
@@ -185,9 +177,9 @@ function createProgressionService(db, q) {
     const xp = getUserXp(userId);
     const t = BP_TIERS.find((c) => c.tier === tier);
     if (!t) return { error: 'invalid tier' };
-    if (xp.seasonXp < t.xp) return { error: 'not unlocked yet' };
-    if (q.bpClaimExists.get(userId, xp.season, tier)) return { error: 'already claimed' };
-    q.bpClaim.run(userId, xp.season, tier);
+    if (xp.totalXp < t.xp) return { error: 'not unlocked yet' };
+    if (q.bpClaimExists.get(userId, tier)) return { error: 'already claimed' };
+    q.bpClaim.run(userId, tier);
     return { ok: true };
   }
 
@@ -201,7 +193,6 @@ function createProgressionService(db, q) {
     getBattlepass,
     getUserCosmetics,
     claimBpTier,
-    currentSeason,
     levelFromXp,
   };
 }

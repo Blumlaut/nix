@@ -91,17 +91,14 @@ function prepareAll(db) {
 
     // ── XP / battle pass ──────────────────────────────────────────────────
     xpByUser: db.prepare('SELECT * FROM user_xp WHERE user_id = ?'),
-    insertXp: db.prepare('INSERT INTO user_xp (user_id, total_xp, season_xp, season) VALUES (?, 0, 0, ?)'),
-    resetSeasonXp: db.prepare('UPDATE user_xp SET season_xp = 0, season = ? WHERE user_id = ?'),
+    insertXp: db.prepare('INSERT INTO user_xp (user_id) VALUES (?)'),
     awardXp: db.prepare(`
-      INSERT INTO user_xp (user_id, total_xp, season_xp, season) VALUES (?, ?, ?, ?)
+      INSERT INTO user_xp (user_id, total_xp) VALUES (?, ?)
       ON CONFLICT(user_id) DO UPDATE SET
-        total_xp = total_xp + excluded.total_xp,
-        season_xp = CASE WHEN user_xp.season = excluded.season THEN season_xp + excluded.season_xp ELSE excluded.season_xp END,
-        season = excluded.season`),
-    bpClaims: db.prepare('SELECT tier FROM bp_claims WHERE user_id = ? AND season = ?'),
-    bpClaim: db.prepare('INSERT INTO bp_claims (user_id, season, tier) VALUES (?, ?, ?)'),
-    bpClaimExists: db.prepare('SELECT 1 FROM bp_claims WHERE user_id = ? AND season = ? AND tier = ?'),
+        total_xp = total_xp + excluded.total_xp`),
+    bpClaims: db.prepare('SELECT tier FROM bp_claims WHERE user_id = ?'),
+    bpClaim: db.prepare('INSERT INTO bp_claims (user_id, tier) VALUES (?, ?)'),
+    bpClaimExists: db.prepare('SELECT 1 FROM bp_claims WHERE user_id = ? AND tier = ?'),
 
     // ── forum ─────────────────────────────────────────────────────────────
     createThread: db.prepare('INSERT INTO threads (author_id, title, body) VALUES (?, ?, ?)'),
