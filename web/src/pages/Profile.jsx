@@ -131,10 +131,14 @@ function RecentActivity({ activity, uid, name }) {
           const otherName = isGiver ? a.target : a.nixer;
           return (
             <li key={a.id}>
-              <span className="pair">
-                {isGiver
-                  ? <><b>{name}</b> nixed <Link className="feed-user" to={`/user/${otherId}`}>{otherName}</Link></>
-                  : <><Link className="feed-user" to={`/user/${otherId}`}>{otherName}</Link> nixed <b>{name}</b></>}
+              <span className="pair prof-pair">
+                <span className="pp-who">
+                  {isGiver ? <b>{name}</b> : <Link className="feed-user" to={`/user/${otherId}`}>{otherName}</Link>}
+                </span>
+                <span className="verb">nixed</span>
+                <span className="pp-who">
+                  {isGiver ? <Link className="feed-user" to={`/user/${otherId}`}>{otherName}</Link> : <b>{name}</b>}
+                </span>
               </span>
               <time>{timeAgo(a.created_at)}</time>
             </li>

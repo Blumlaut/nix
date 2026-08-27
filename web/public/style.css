@@ -1107,6 +1107,10 @@ main > :nth-child(6) { animation-delay: .25s; }
 .prof-list li .n{margin-left:auto;font-weight:700;color:var(--text-2);font-size:.85rem;flex-shrink:0}
 
 .prof-feed li{padding:5px 0;font-size:.85rem}
+/* "A nixed B" rows align in columns: actor left, verb centered, target right */
+.prof-pair{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;column-gap:.5em;flex:1}
+.prof-pair .pp-who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof-pair .pp-who:last-child{text-align:right}
 
 /* Nemesis card */
 .nem-card{display:flex;flex-direction:column;gap:10px}
