@@ -1035,7 +1035,7 @@ main > :nth-child(6) { animation-delay: .25s; }
 .nemesis-hint{font-size:.8rem;color:var(--muted);font-style:italic}
 
 /* User rows */
-.user-row{display:flex;align-items:center;gap:10px}
+.list li.user-row{display:flex;align-items:center;gap:10px}
 .user-link{text-decoration:none;color:var(--text);font-weight:600}
 .user-link:hover{color:var(--accent)}
 .user-meta{font-size:.7rem;color:var(--muted);background:var(--surface-2);padding:2px 8px;border-radius:10px;white-space:nowrap}
