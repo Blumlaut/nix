@@ -89,6 +89,7 @@ function createApiRouter(deps) {
       return {
         uid: r.uid,
         name: r.name,
+        avatar: r.avatar || null,
         n: r.n,
         received: queries.userReceived.get(r.uid).n,
         level: xp.level,
