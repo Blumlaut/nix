@@ -37,6 +37,7 @@ function createApiRouter(deps) {
       id: req.user.id,
       discordId: req.user.discordId,
       name: req.user.name || null,
+      avatar: req.user.avatarUrl || null,
     });
   });
 
@@ -49,7 +50,7 @@ function createApiRouter(deps) {
       return res.status(409).json({ error: 'name_taken' });
     }
     if (req.user.id) queries.updateName.run(name, ci, req.user.id);
-    else queries.insertUser.run(req.user.discordId, name, ci);
+    else queries.insertUser.run(req.user.discordId, name, ci, req.user.avatarUrl || null);
     return res.json({ ok: true, name });
   });
 
@@ -80,8 +81,8 @@ function createApiRouter(deps) {
     });
 
     res.json({
-      me: { id: req.user.id, name: req.user.name },
-      targets: allUsers.map((u) => ({ id: u.id, name: u.name })),
+      me: { id: req.user.id, name: req.user.name, avatar: req.user.avatarUrl || null },
+      targets: allUsers.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar_url || null })),
       leaderboard,
       mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, n: r.n })),
       topPairs: queries.topPairs.all(BOARD_TOP).map((r) => ({

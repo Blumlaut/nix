@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { IconButton, Tooltip, Menu, MenuItem, Divider, Box, Avatar, Typography } from '@mui/material';
+import { IconButton, Tooltip, Menu, MenuItem, Divider, Box, Typography } from '@mui/material';
 import { api } from '../api';
 import { currentTheme, toggleTheme } from '../theme';
+import UserAvatar from './UserAvatar';
 
 const NAV = [
   { to: '/', label: 'Board', end: true },
@@ -54,9 +55,7 @@ export default function Header() {
               aria-expanded={open}
               onClick={(e) => setAnchorEl(e.currentTarget)}
             >
-              <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 16, fontWeight: 700 }}>
-                {me ? me.name[0].toUpperCase() : '?'}
-              </Avatar>
+              <UserAvatar name={me ? me.name : null} src={me ? me.avatar : null} size={34} />
             </IconButton>
           </Tooltip>
           <Menu

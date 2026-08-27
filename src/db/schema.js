@@ -17,6 +17,7 @@ const SCHEMA = `
     discord_id  TEXT    NOT NULL UNIQUE,
     name        TEXT    NOT NULL,
     name_ci     TEXT    NOT NULL UNIQUE,
+    avatar_url  TEXT,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );

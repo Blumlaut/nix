@@ -78,6 +78,23 @@ function migrateBattlepassTables(db) {
 }
 
 /**
+ * Add `users.avatar_url` to databases created before Discord avatars were
+ * stored. `CREATE TABLE IF NOT EXISTS` never alters existing tables, so
+ * pre-existing databases need the column added explicitly. Idempotent.
+ */
+function migrateUsersAvatarColumn(db) {
+  // Fresh databases: SCHEMA (run afterwards) creates users with the column.
+  const hasUsers = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+  ).get();
+  if (!hasUsers) return;
+  const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  if (!cols.includes('avatar_url')) {
+    db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+  }
+}
+
+/**
  * Open (creating if needed) the SQLite database, apply the schema and seed
  * the achievement catalog. Returns the live better-sqlite3 connection.
  *
@@ -94,6 +111,7 @@ function open(dbPath) {
 
   migrateSessionsTable(db);
   migrateBattlepassTables(db);
+  migrateUsersAvatarColumn(db);
   db.exec(SCHEMA);
   seedAchievements(db);
 

@@ -264,3 +264,54 @@ test('open() migrates a legacy (hand-rolled) sessions table', () => {
 
   for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
 });
+
+test('open() adds users.avatar_url to legacy databases (idempotently)', () => {
+  const dbPath = path.join(os.tmpdir(), `nix-avatar-legacy-${process.pid}.sqlite`);
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+
+  // Pre-avatar layout: users table without the avatar_url column.
+  const legacy = new (require('better-sqlite3'))(dbPath);
+  legacy.exec(`
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      discord_id TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      name_ci TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  legacy.prepare('INSERT INTO users (discord_id, name, name_ci) VALUES (?, ?, ?)').run('d1', 'Alice', 'alice');
+  legacy.close();
+
+  const db2 = open(dbPath);
+  const q2 = prepareAll(db2);
+
+  const cols = db2.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  assert.ok(cols.includes('avatar_url'), 'avatar_url column added to legacy table');
+
+  // Existing rows keep their data and get a NULL avatar until first login.
+  const row = db2.prepare('SELECT * FROM users WHERE discord_id = ?').get('d1');
+  assert.equal(row.name, 'Alice');
+  assert.equal(row.avatar_url, null);
+
+  // First-login flow: no row yet, so the avatar rides in the session until
+  // the name is picked — insertUser now takes the avatar as 4th param.
+  q2.insertUser.run('d2', 'Bob', 'bob', 'https://cdn.discordapp.com/embed/avatars/1.png');
+  const bob = q2.userByDiscord.get('d2');
+  assert.equal(bob.avatar_url, 'https://cdn.discordapp.com/embed/avatars/1.png');
+
+  // Re-login refreshes a changed avatar.
+  q2.updateAvatar.run('https://cdn.discordapp.com/avatars/d2/xyz.png?size=128', bob.id);
+  assert.equal(q2.userByDiscord.get('d2').avatar_url, 'https://cdn.discordapp.com/avatars/d2/xyz.png?size=128');
+
+  db2.close();
+
+  // A second open() on an already-migrated db is a no-op.
+  const db3 = open(dbPath);
+  const cols2 = db3.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  assert.ok(cols2.includes('avatar_url'));
+  db3.close();
+
+  for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+});

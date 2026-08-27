@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Button, LinearProgress } from '@mui/material';
 import { api } from '../api';
 import { timeAgo } from '../util';
+import UserAvatar from '../components/UserAvatar';
 
 export default function Profile() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function Profile() {
     <>
       <div className="card prof-header">
         <div className="prof-ident">
-          <span className="prof-avatar">{(p.user.name || '?')[0].toUpperCase()}</span>
+          <UserAvatar name={p.user.name} src={p.user.avatar_url || null} size={56} sx={{ fontSize: '1.6rem', fontWeight: 700 }} />
           <div className="prof-info">
             <h1 className="prof-name">
               {p.user.name}

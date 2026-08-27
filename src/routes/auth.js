@@ -14,9 +14,16 @@ const express = require('express');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 
+const { discordAvatarUrl } = require('../lib/discord');
+
 function toSessionUser(row) {
   if (!row) return null;
-  return { id: row.id, discordId: row.discord_id, name: row.name };
+  return {
+    id: row.id,
+    discordId: row.discord_id,
+    name: row.name,
+    avatarUrl: row.avatar_url || null,
+  };
 }
 
 function configurePassport(config, queries) {
@@ -28,16 +35,29 @@ function configurePassport(config, queries) {
       scope: ['identify'],
     },
     (accessToken, refreshToken, profile, done) => {
-      // Tokens are unused — we only need the user's Discord ID.
-      const row = queries.userByDiscord.get(String(profile.id));
-      done(null, row ? toSessionUser(row) : { id: null, discordId: String(profile.id), name: null });
+      // Tokens are unused — we only need the Discord ID and avatar hash.
+      const discordId = String(profile.id);
+      const avatarUrl = discordAvatarUrl(discordId, profile.avatar || null);
+      const row = queries.userByDiscord.get(discordId);
+      if (row) {
+        if ((row.avatar_url || null) !== avatarUrl) queries.updateAvatar.run(avatarUrl, row.id);
+        return done(null, toSessionUser(queries.userByDiscord.get(discordId)));
+      }
+      // No row yet (user has no display name): carry the avatar in the
+      // session until POST /api/me/name creates the row.
+      done(null, { id: null, discordId, name: null, avatarUrl });
     }
   ));
 
-  passport.serializeUser((user, done) => done(null, user.discordId));
-  passport.deserializeUser((discordId, done) => {
+  passport.serializeUser((user, done) =>
+    done(null, { discordId: user.discordId, avatarUrl: user.avatarUrl || null }));
+  passport.deserializeUser((payload, done) => {
+    // Legacy sessions serialized a bare discordId string; new ones carry an
+    // object so a not-yet-named user keeps their avatar across requests.
+    const discordId = typeof payload === 'string' ? payload : payload.discordId;
+    const pendingAvatar = typeof payload === 'string' ? null : payload.avatarUrl || null;
     const row = queries.userByDiscord.get(discordId);
-    done(null, row ? toSessionUser(row) : { id: null, discordId, name: null });
+    done(null, row ? toSessionUser(row) : { id: null, discordId, name: null, avatarUrl: pendingAvatar });
   });
 }
 

@@ -4,6 +4,7 @@ import { api } from '../api';
 import { timeAgo, fmtLocal } from '../util';
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -17,6 +18,7 @@ import {
   Snackbar,
   TextField,
 } from '@mui/material';
+import UserAvatar from '../components/UserAvatar';
 
 const RECENT_PAGE = 10;
 const RECENT_CAP = 100;
@@ -121,6 +123,7 @@ export default function Board() {
               empty="No users yet."
               render={(r, i) => (
                 <li key={i} className={`user-row${r.border ? ` border-${r.border}` : ''}`}>
+                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
                   <Link className="user-link" to={`/user/${r.uid}`}>
                     <span className="uname">{r.name}</span>
                     {r.title && <span className="bp-title">{r.title}</span>}
@@ -298,7 +301,14 @@ function NixForm({ me, board, onNixed, onResult }) {
           inputProps={{ 'aria-label': 'Choose someone to nix' }}
         >
           <MenuItem value="" disabled>Choose…</MenuItem>
-          {targets.map((t) => <MenuItem key={t.id} value={String(t.id)}>{t.name}</MenuItem>)}
+          {targets.map((t) => (
+            <MenuItem key={t.id} value={String(t.id)}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <UserAvatar name={t.name} src={t.avatar || null} size={20} />
+                {t.name}
+              </Box>
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
       <Button variant="contained" type="submit" disabled={!targets.length}>I nixed them</Button>

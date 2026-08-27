@@ -10,16 +10,17 @@ function prepareAll(db) {
     userByDiscord: db.prepare('SELECT * FROM users WHERE discord_id = ?'),
     userById: db.prepare('SELECT * FROM users WHERE id = ?'),
     userByNameCi: db.prepare('SELECT * FROM users WHERE name_ci = ?'),
-    insertUser: db.prepare('INSERT INTO users (discord_id, name, name_ci) VALUES (?, ?, ?)'),
+    insertUser: db.prepare('INSERT INTO users (discord_id, name, name_ci, avatar_url) VALUES (?, ?, ?, ?)'),
     updateName: db.prepare("UPDATE users SET name = ?, name_ci = ?, updated_at = datetime('now') WHERE id = ?"),
-    allUsers: db.prepare('SELECT id, discord_id, name FROM users ORDER BY name_ci ASC'),
+    updateAvatar: db.prepare("UPDATE users SET avatar_url = ?, updated_at = datetime('now') WHERE id = ?"),
+    allUsers: db.prepare('SELECT id, discord_id, name, avatar_url FROM users ORDER BY name_ci ASC'),
 
     // ── nixes ─────────────────────────────────────────────────────────────
     insertNix: db.prepare('INSERT INTO nixes (nixer_id, nixed_id) VALUES (?, ?)'),
     nixById: db.prepare('SELECT id, nixer_id FROM nixes WHERE id = ?'),
     deleteNix: db.prepare('DELETE FROM nixes WHERE id = ? AND nixer_id = ?'),
     leaderboard: db.prepare(`
-      SELECT u.id AS uid, u.name AS name, COUNT(*) AS n
+      SELECT u.id AS uid, u.name AS name, u.avatar_url AS avatar, COUNT(*) AS n
       FROM nixes nx JOIN users u ON u.id = nx.nixer_id
       GROUP BY nx.nixer_id ORDER BY n DESC, u.name_ci ASC LIMIT ?`),
     mostNixed: db.prepare(`
