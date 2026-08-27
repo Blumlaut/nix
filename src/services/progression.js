@@ -127,6 +127,17 @@ function createProgressionService(db, q) {
     return unlocked;
   }
 
+  /**
+   * Check a user's achievements and award the standard XP for every newly
+   * unlocked one. Idempotent — safe to call on profile load so that nixes
+   * made before the achievements existed are unlocked retroactively.
+   */
+  function syncAchievements(userId) {
+    const unlocked = checkAchievements(userId);
+    if (unlocked.length) awardXp(userId, unlocked.length * XP_ACH);
+    return unlocked;
+  }
+
   // ── Battle pass / cosmetics ─────────────────────────────────────────────
   function getBattlepass(userId) {
     const xp = getUserXp(userId);
@@ -222,6 +233,7 @@ function createProgressionService(db, q) {
     awardXp,
     awardNixXp,
     checkAchievements,
+    syncAchievements,
     unlockAch,
     getBattlepass,
     getUserCosmetics,

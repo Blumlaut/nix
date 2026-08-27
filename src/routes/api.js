@@ -131,10 +131,8 @@ function createApiRouter(deps) {
 
     queries.insertNix.run(req.user.id, targetId);
     const xp = progression.awardNixXp(req.user.id, targetId);
-    const giverAch = progression.checkAchievements(req.user.id);
-    const receiverAch = progression.checkAchievements(targetId);
-    if (giverAch.length) progression.awardXp(req.user.id, giverAch.length * 100);
-    if (receiverAch.length) progression.awardXp(targetId, receiverAch.length * 100);
+    const giverAch = progression.syncAchievements(req.user.id);
+    const receiverAch = progression.syncAchievements(targetId);
     push.notifyNix(req.user.id, req.user.name, target.name);
 
     return res.json({ ok: true, xp, achievements: { giver: giverAch, receiver: receiverAch } });
@@ -286,6 +284,10 @@ function createApiRouter(deps) {
     const userId = Number(req.params.id);
     if (!Number.isInteger(userId) || userId <= 0) return res.status(404).json({ error: 'not found' });
     const isMe = Boolean(req.isAuthenticated() && req.user.id === userId);
+    // Retroactive unlock: achievements for nixes made before the
+    // achievements system (or since the last check) are applied here, so
+    // the profile that is displayed is always current.
+    progression.syncAchievements(userId);
     const profile = users.getProfile(userId, progression, { isMe });
     if (!profile) return res.status(404).json({ error: 'user not found' });
     profile.isMe = isMe;

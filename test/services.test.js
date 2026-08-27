@@ -77,6 +77,31 @@ test('nix flow awards XP and achievements', () => {
   assert.equal(nem.nemesisId, alice.id);
 });
 
+test('achievements unlock retroactively for pre-existing nixes', () => {
+  const fiona = freshUser('discord-fiona', 'Fiona');
+  const greg = freshUser('discord-greg', 'Greg');
+
+  // Nixes recorded before the achievements system rolled out — nobody ran
+  // checkAchievements when they were made.
+  q.insertNix.run(fiona.id, greg.id);
+  q.insertNix.run(greg.id, fiona.id);
+  assert.equal(q.userAchievements.all(fiona.id).length, 0);
+
+  // Loading the profile triggers the deferred sync.
+  const unlocked = prog.syncAchievements(fiona.id);
+  assert.ok(unlocked.includes('first_nix'), 'fiona earns first_nix');
+  assert.ok(unlocked.includes('first_received'), 'fiona earns first_received');
+  assert.ok(!unlocked.includes('nix_10'), 'fiona has only given one nix');
+
+  // New unlocks award the standard achievement XP (100 each).
+  const xpAfter = prog.getUserXp(fiona.id).totalXp;
+  assert.equal(xpAfter, unlocked.length * 100);
+
+  // Idempotent: a second check re-unlocks nothing and awards no XP.
+  assert.deepEqual(prog.syncAchievements(fiona.id), []);
+  assert.equal(prog.getUserXp(fiona.id).totalXp, xpAfter);
+});
+
 test('streaks track runs', () => {
   const { alice, bob } = seed();
   q.insertNix.run(alice.id, bob.id);
