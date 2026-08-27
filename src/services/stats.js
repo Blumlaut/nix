@@ -58,9 +58,12 @@ function createStatsService(db, q) {
     if (bucket === '1d') {
       perDay = listDates(start, today).map((d) => ({ d, n: byDay.get(d) || 0 }));
     } else {
+      // printf('%02d') keeps the hour zero-padded so the SQL bucket keys
+      // match the labels listBuckets() produces on the JS side ('00:00',
+      // not '0:00' — which silently dropped the 00:00-06:00 bucket).
       const key = bucket === '1h'
         ? "strftime('%Y-%m-%d %H:00', created_at)"
-        : "strftime('%Y-%m-%d', created_at) || ' ' || (CAST(strftime('%H', created_at) AS INTEGER) / 6 * 6) || ':00'";
+        : "strftime('%Y-%m-%d', created_at) || ' ' || printf('%02d', CAST(strftime('%H', created_at) AS INTEGER) / 6 * 6) || ':00'";
       const nowIso = q.nowIso.get().t;
       const rows = db.prepare(
         `SELECT ${key} AS d, COUNT(*) AS n FROM nixes WHERE datetime(created_at) BETWEEN ? AND ? GROUP BY d`
