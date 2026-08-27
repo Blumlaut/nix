@@ -225,12 +225,16 @@ function VotePill({ type, id, score, myVote }) {
     setState(r.data);
   }
 
+  // The voted state is shown via the .vp-up.on / .vp-down.on classes in
+  // style.css: the global `.vote-pill button` rule outranks MUI's emotion
+  // classes, so a MUI `color` prop on the IconButton never wins.
   return (
     <span className="vote-pill">
       <IconButton
         size="small"
         aria-label="Upvote"
-        color={state.voted === 1 ? 'success' : 'default'}
+        aria-pressed={state.voted === 1}
+        className={`vp-up${state.voted === 1 ? ' on' : ''}`}
         onClick={() => doVote(1)}
       >
         <ArrowUpward fontSize="small" />
@@ -239,7 +243,8 @@ function VotePill({ type, id, score, myVote }) {
       <IconButton
         size="small"
         aria-label="Downvote"
-        color={state.voted === -1 ? 'error' : 'default'}
+        aria-pressed={state.voted === -1}
+        className={`vp-down${state.voted === -1 ? ' on' : ''}`}
         onClick={() => doVote(-1)}
       >
         <ArrowDownward fontSize="small" />
