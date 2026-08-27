@@ -69,7 +69,7 @@ export default function Profile() {
 
         <div className="prof-col prof-col-r">
           {p.battlepass?.tiers && (
-            <Battlepass bp={p.battlepass} claimed={claimed} onClaim={(tier) => {
+            <Nixpass bp={p.battlepass} claimed={claimed} onClaim={(tier) => {
               api(`/api/battlepass/claim/${tier}`, { method: 'POST' }).then((r) => {
                 if (r && r.status < 400) {
                   setClaimed((c) => ({ ...c, [tier]: true }));
@@ -145,12 +145,12 @@ function RecentActivity({ activity, uid, name }) {
   );
 }
 
-function Battlepass({ bp, claimed, onClaim }) {
+function Nixpass({ bp, claimed, onClaim }) {
   const maxTier = bp.tiers.length;
   const pct = bp.level >= maxTier ? 100 : Math.round(bp.levelProgress * 100);
   return (
     <section className="card prof-section">
-      <h2>🎮 Battlepass</h2>
+      <h2>🎮 Nixpass</h2>
       <div className="bp-bar-wrap">
         <LinearProgress variant="determinate" value={pct} />
         <span className="bp-bar-label">Level {bp.level} / {maxTier}</span>

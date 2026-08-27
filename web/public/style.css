@@ -1078,7 +1078,7 @@ main > :nth-child(6) { animation-delay: .25s; }
 .cos-dot.gold{background:#fbbf24}
 .cos-dot.rainbow{background:linear-gradient(90deg,#ff6b6b,#fbbf24,#51cf66,#4a9eff,#a855f7)}
 
-/* Battlepass title */
+/* Nixpass title */
 .bp-title{font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:middle}
 .bp-title-display{font-size:.8rem;font-weight:600;color:var(--accent);margin-left:8px}
 .legend-badge{font-size:.75rem;margin-left:4px}
@@ -1119,7 +1119,7 @@ main > :nth-child(6) { animation-delay: .25s; }
 .nem-dom{font-size:.8rem;font-weight:700;color:var(--accent)}
 .nem-hint{font-size:.8rem;color:var(--muted);font-style:italic}
 
-/* Battlepass */
+/* Nixpass */
 .bp-bar-wrap{margin-bottom:12px}
 .bp-bar{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
 .bp-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7);border-radius:3px;transition:width .3s}
