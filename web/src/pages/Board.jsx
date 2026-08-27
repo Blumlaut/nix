@@ -197,9 +197,9 @@ export default function Board() {
           {recent.length ? recent.map((r) => (
             <li key={r.id}>
               <span className="pair">
-                <Link className="feed-user" to={`/user/${r.nixerUid}`}><b>{r.nixer}</b></Link>
+                <Link className={`feed-user${r.nixerBorder ? ` border-${r.nixerBorder}` : ''}`} to={`/user/${r.nixerUid}`}><b>{r.nixer}</b></Link>
                 {' '}<span className="verb">nixed</span>{' '}
-                <Link className="feed-user" to={`/user/${r.targetUid}`}><b>{r.target}</b></Link>
+                <Link className={`feed-user${r.targetBorder ? ` border-${r.targetBorder}` : ''}`} to={`/user/${r.targetUid}`}><b>{r.target}</b></Link>
               </span>
               <time dateTime={r.created_at} title={fmtLocal(r.created_at)}>{timeAgo(r.created_at)}</time>
               {r.nixerId === me?.id ? (

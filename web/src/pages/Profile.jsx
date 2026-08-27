@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, LinearProgress } from '@mui/material';
 import { api } from '../api';
@@ -11,13 +11,15 @@ export default function Profile() {
   const [error, setError] = useState(null);
   const [claimed, setClaimed] = useState({});
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!id || Number.isNaN(Number(id))) { setError('Invalid user'); return; }
     api(`/api/users/${id}`).then((r) => {
       if (!r || r.status >= 400) setError('User not found');
       else setP(r.data);
     });
   }, [id]);
+
+  useEffect(() => { load(); }, [load]);
 
   if (error) return <div className="error">{error}</div>;
   if (!p) return null;
@@ -28,7 +30,7 @@ export default function Profile() {
 
   return (
     <>
-      <div className="card prof-header">
+      <div className={`card prof-header${cos.border ? ` border-${cos.border}` : ''}`}>
         <div className="prof-ident">
           <UserAvatar name={p.user.name} src={p.user.avatar_url || null} size={56} sx={{ fontSize: '1.6rem', fontWeight: 700 }} />
           <div className="prof-info">
@@ -69,7 +71,17 @@ export default function Profile() {
           {p.battlepass?.tiers && (
             <Battlepass bp={p.battlepass} claimed={claimed} onClaim={(tier) => {
               api(`/api/battlepass/claim/${tier}`, { method: 'POST' }).then((r) => {
-                if (r && r.status < 400) setClaimed((c) => ({ ...c, [tier]: true }));
+                if (r && r.status < 400) {
+                  setClaimed((c) => ({ ...c, [tier]: true }));
+                  load(); // refresh active cosmetics (a new tier may auto-activate)
+                }
+              });
+            }} />
+          )}
+          {p.isMe && p.battlepass?.tiers && (
+            <Cosmetics bp={p.battlepass} claimed={claimed} cos={cos} onSet={(kind, value) => {
+              api('/api/battlepass/cosmetics', { method: 'POST', body: JSON.stringify({ kind, value }) }).then((r) => {
+                if (r && r.status < 400) load();
               });
             }} />
           )}
@@ -160,6 +172,41 @@ function Battlepass({ bp, claimed, onClaim }) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function Cosmetics({ bp, claimed, cos, onSet }) {
+  const tiers = bp.tiers.filter((t) => (t.claimed || claimed[t.tier]) && (t.reward === 'title' || t.reward === 'border'));
+  if (!tiers.length) return null;
+  const titles = tiers.filter((t) => t.reward === 'title');
+  const borders = tiers.filter((t) => t.reward === 'border');
+  return (
+    <section className="card prof-section">
+      <h2>🎨 Cosmetics</h2>
+      <p className="cos-hint">Choose which of your unlocked titles and borders are shown.</p>
+      {titles.length > 0 && (
+        <div className="cos-row">
+          <span className="cos-label">Title</span>
+          <button type="button" className={`cos-chip none${cos.title === null ? ' active' : ''}`} onClick={() => onSet('title', null)}>None</button>
+          {titles.map((t) => (
+            <button key={t.tier} type="button" className={`cos-chip${cos.title === t.value ? ' active' : ''}`} onClick={() => onSet('title', t.value)}>
+              ✦ {t.value}
+            </button>
+          ))}
+        </div>
+      )}
+      {borders.length > 0 && (
+        <div className="cos-row">
+          <span className="cos-label">Border</span>
+          <button type="button" className={`cos-chip none${cos.border === null ? ' active' : ''}`} onClick={() => onSet('border', null)}>None</button>
+          {borders.map((t) => (
+            <button key={t.tier} type="button" className={`cos-chip${cos.border === t.value ? ' active' : ''}`} onClick={() => onSet('border', t.value)}>
+              <span className={`cos-dot ${t.value}`} />{t.name.replace(' Border', '')}
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -137,7 +137,7 @@ function createProgressionService(db, q) {
       claimed: claims.has(t.tier),
     }));
     const highest = tiers.filter((t) => t.unlocked).pop();
-    const active = cosmeticsFromClaims(tiers);
+    const active = getUserCosmetics(userId);
     return {
       totalXp: xp.totalXp,
       level: xp.level,
@@ -150,6 +150,11 @@ function createProgressionService(db, q) {
     };
   }
 
+  /**
+   * The cosmetics a user actually displays. An explicit choice (see
+   * setActiveCosmetic) wins; otherwise the highest claimed tier per category
+   * is used, so existing users keep their current look.
+   */
   function getUserCosmetics(userId) {
     const claims = q.bpClaims.all(userId);
     if (!claims.length) return { title: null, border: null, badge: null };
@@ -157,7 +162,13 @@ function createProgressionService(db, q) {
       ...t,
       claimed: new Set(claims.map((c) => c.tier)).has(t.tier),
     }));
-    return cosmeticsFromClaims(tiers);
+    const auto = cosmeticsFromClaims(tiers);
+    const sel = q.userCosmetics.get(userId) || {};
+    return {
+      title: sel.title || auto.title,
+      border: sel.border || auto.border,
+      badge: sel.badge || auto.badge,
+    };
   }
 
   function cosmeticsFromClaims(tiers) {
@@ -171,6 +182,28 @@ function createProgressionService(db, q) {
       if (t.reward === 'badge') badge = t.value;
     }
     return { title, border, badge };
+  }
+
+  /**
+   * Switch which unlocked cosmetic is shown, per category ('title' | 'border'
+   * | 'badge'). `value` must be a reward the user has actually claimed, or
+   * null to drop the explicit choice (falls back to the highest claimed).
+   */
+  function setActiveCosmetic(userId, kind, value) {
+    if (!['title', 'border', 'badge'].includes(kind)) return { error: 'invalid kind' };
+    const claimedTiers = new Set(q.bpClaims.all(userId).map((c) => c.tier));
+    if (value !== null) {
+      const tier = BP_TIERS.find((t) => t.reward === kind && t.value === value);
+      if (!tier || !claimedTiers.has(tier.tier)) return { error: 'not unlocked' };
+    }
+    const cur = q.userCosmetics.get(userId) || {};
+    const next = {
+      title: kind === 'title' ? value : cur.title ?? null,
+      border: kind === 'border' ? value : cur.border ?? null,
+      badge: kind === 'badge' ? value : cur.badge ?? null,
+    };
+    q.upsertUserCosmetics.run(userId, next.title, next.border, next.badge);
+    return { ok: true, cosmetics: getUserCosmetics(userId) };
   }
 
   function claimBpTier(userId, tier) {
@@ -192,6 +225,7 @@ function createProgressionService(db, q) {
     unlockAch,
     getBattlepass,
     getUserCosmetics,
+    setActiveCosmetic,
     claimBpTier,
     levelFromXp,
   };

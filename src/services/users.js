@@ -17,8 +17,10 @@ function createUsersService(db, q) {
   /**
    * Assemble everything shown on a profile page.
    * @param {import('./progression')} progression
+   * @param {{ isMe?: boolean }} [opts] the battlepass (tiers, claims, claim
+   *   buttons) is private — only included for the profile owner themselves.
    */
-  function getProfile(userId, progression) {
+  function getProfile(userId, progression, { isMe = false } = {}) {
     const user = q.userById.get(userId);
     if (!user) return null;
 
@@ -29,7 +31,7 @@ function createUsersService(db, q) {
       achievements: q.userAchievements.all(userId),
       nemesis: progression.getNemesis(userId),
       cosmetics: progression.getUserCosmetics(userId),
-      battlepass: progression.getBattlepass(userId),
+      ...(isMe ? { battlepass: progression.getBattlepass(userId) } : {}),
       topTargets: q.userTopTargets.all(userId),
       recentActivity: q.userRecentActivity.all(userId, userId),
     };

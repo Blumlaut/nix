@@ -117,6 +117,17 @@ test('profile assembles user data', () => {
   assert.ok(p.xp);
 });
 
+test('battlepass is only included in the profile of the owner', () => {
+  const { alice } = seed();
+  // Someone else's (or a guest's) profile stays free of tier/claim state —
+  // otherwise the claim buttons would act on the viewer's own account.
+  assert.ok(!('battlepass' in users.getProfile(alice.id, prog)));
+  assert.ok(!('battlepass' in users.getProfile(alice.id, prog, { isMe: false })));
+  assert.ok('battlepass' in users.getProfile(alice.id, prog, { isMe: true }));
+  // Public cosmetics still show on everyone's profile.
+  assert.ok('cosmetics' in users.getProfile(alice.id, prog));
+});
+
 function freshUser(discordId, name) {
   db.prepare('INSERT OR IGNORE INTO users (discord_id, name, name_ci) VALUES (?, ?, ?)')
     .run(discordId, name, name.toLowerCase());
@@ -161,6 +172,40 @@ test('battlepass claim requires the tier level and is stored per user+tier', () 
 
   assert.equal(prog.getUserCosmetics(dave.id).border, 'blue', 'claimed tier 2 grants the blue border');
   assert.equal(prog.getBattlepass(dave.id).highestTier, 2);
+});
+
+test('cosmetics can be switched between unlocked tiers', () => {
+  const erin = freshUser('discord-erin', 'Erin');
+  prog.awardXp(erin.id, 800); // level 5 → tiers 1-4 claimable
+  for (const tier of [1, 2, 3, 4]) {
+    assert.deepEqual(prog.claimBpTier(erin.id, tier), { ok: true });
+  }
+
+  // Default: highest claimed tier per category
+  let cos = prog.getUserCosmetics(erin.id);
+  assert.equal(cos.title, 'Nix Apprentice');
+  assert.equal(cos.border, 'purple');
+
+  // Switch both categories to lower tiers (independently)
+  assert.equal(prog.setActiveCosmetic(erin.id, 'title', 'Rookie').cosmetics.title, 'Rookie');
+  assert.equal(prog.setActiveCosmetic(erin.id, 'border', 'blue').cosmetics.border, 'blue');
+  cos = prog.getUserCosmetics(erin.id);
+  assert.equal(cos.title, 'Rookie');
+  assert.equal(cos.border, 'blue');
+
+  // Battlepass reflects the active choice
+  const bp = prog.getBattlepass(erin.id);
+  assert.equal(bp.activeTitle, 'Rookie');
+  assert.equal(bp.activeBorder, 'blue');
+
+  // Cannot equip a reward that was never claimed, or an unknown kind
+  assert.deepEqual(prog.setActiveCosmetic(erin.id, 'border', 'gold'), { error: 'not unlocked' });
+  assert.deepEqual(prog.setActiveCosmetic(erin.id, 'hats', 'blue'), { error: 'invalid kind' });
+
+  // Clearing the choice falls back to the highest claimed; other
+  // categories keep their selection
+  assert.equal(prog.setActiveCosmetic(erin.id, 'title', null).cosmetics.title, 'Nix Apprentice');
+  assert.equal(prog.getUserCosmetics(erin.id).border, 'blue');
 });
 
 test('open() migrates legacy season-based battlepass tables', () => {

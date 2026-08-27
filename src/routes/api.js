@@ -55,6 +55,23 @@ function createApiRouter(deps) {
   });
 
   // ── Board ──────────────────────────────────────────────────────────────
+  // Attach each user's active border to a nix row so the feed can draw it.
+  // Results are cached per request — a page of 10 rows touches at most 20 users.
+  const withBorders = (rows) => {
+    const borderByUser = new Map();
+    const borderFor = (uid) => {
+      if (!borderByUser.has(uid)) {
+        borderByUser.set(uid, progression.getUserCosmetics(uid).border);
+      }
+      return borderByUser.get(uid);
+    };
+    return rows.map((r) => ({
+      ...r,
+      nixerBorder: borderFor(r.nixerUid),
+      targetBorder: borderFor(r.targetUid),
+    }));
+  };
+
   router.get('/board', requireSession(true), (req, res) => {
     const allUsers = queries.allUsers.all();
     const nameById = new Map(allUsers.map((u) => [u.id, u.name]));
@@ -89,7 +106,7 @@ function createApiRouter(deps) {
         auid: r.auid, buid: r.buid, nixer: r.nixer, target: r.target, n: r.n,
       })),
       streaks: streakRows,
-      recent: queries.recent.all(RECENT_PAGE, 0),
+      recent: withBorders(queries.recent.all(RECENT_PAGE, 0)),
       recentTotal: queries.recentCount.get().n,
     });
   });
@@ -98,7 +115,7 @@ function createApiRouter(deps) {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || RECENT_PAGE, 1), 50);
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     res.json({
-      items: queries.recent.all(limit, (page - 1) * limit),
+      items: withBorders(queries.recent.all(limit, (page - 1) * limit)),
       total: queries.recentCount.get().n,
       page,
       limit,
@@ -253,12 +270,25 @@ function createApiRouter(deps) {
     return res.json(result);
   });
 
+  // Switch which unlocked title / border (or badge) is displayed.
+  router.post('/battlepass/cosmetics', requireSession(true), (req, res) => {
+    const { kind, value } = req.body || {};
+    if (value !== null && (typeof value !== 'string' || !value.trim())) {
+      return res.status(400).json({ error: 'invalid value' });
+    }
+    const result = progression.setActiveCosmetic(req.user.id, kind, value ?? null);
+    if (result.error) return res.status(400).json(result);
+    return res.json(result);
+  });
+
   // ── Profiles ───────────────────────────────────────────────────────────
   router.get('/users/:id', (req, res) => {
     const userId = Number(req.params.id);
     if (!Number.isInteger(userId) || userId <= 0) return res.status(404).json({ error: 'not found' });
-    const profile = users.getProfile(userId, progression);
+    const isMe = Boolean(req.isAuthenticated() && req.user.id === userId);
+    const profile = users.getProfile(userId, progression, { isMe });
     if (!profile) return res.status(404).json({ error: 'user not found' });
+    profile.isMe = isMe;
     if (req.isAuthenticated() && req.user.id) {
       const myNemesis = progression.getNemesis(req.user.id);
       profile.myNemesis = myNemesis;

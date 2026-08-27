@@ -100,6 +100,13 @@ function prepareAll(db) {
     bpClaims: db.prepare('SELECT tier FROM bp_claims WHERE user_id = ?'),
     bpClaim: db.prepare('INSERT INTO bp_claims (user_id, tier) VALUES (?, ?)'),
     bpClaimExists: db.prepare('SELECT 1 FROM bp_claims WHERE user_id = ? AND tier = ?'),
+    userCosmetics: db.prepare('SELECT title, border, badge FROM user_cosmetics WHERE user_id = ?'),
+    upsertUserCosmetics: db.prepare(`
+      INSERT INTO user_cosmetics (user_id, title, border, badge) VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        title = excluded.title,
+        border = excluded.border,
+        badge = excluded.badge`),
 
     // ── forum ─────────────────────────────────────────────────────────────
     createThread: db.prepare('INSERT INTO threads (author_id, title, body) VALUES (?, ?, ?)'),

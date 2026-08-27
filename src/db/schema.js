@@ -66,6 +66,14 @@ const SCHEMA = `
     claimed_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, tier)
   );
+  -- User-chosen active cosmetics, one row per user. A NULL column means "no
+  -- explicit choice" — the highest claimed tier's reward is used instead.
+  CREATE TABLE IF NOT EXISTS user_cosmetics (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT,
+    border TEXT,
+    badge TEXT
+  );
   CREATE TABLE IF NOT EXISTS threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

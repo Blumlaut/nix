@@ -1044,11 +1044,39 @@ main > :nth-child(6) { animation-delay: .25s; }
 .nix-sep{color:var(--muted);font-size:.75rem}
 .nix-received{font-weight:600;color:var(--muted)}
 
-/* Border cosmetics */
-.border-blue{border-left:3px solid #4a9eff!important}
-.border-purple{border-left:3px solid #a855f7!important}
-.border-gold{border-left:3px solid #fbbf24!important}
-.border-rainbow{border-left:3px solid transparent!important;background-image:linear-gradient(var(--surface),var(--surface)),linear-gradient(90deg,#ff6b6b,#fbbf24,#51cf66,#4a9eff,#a855f7);background-origin:border-box;background-clip:padding-box,border-box}
+/* Border cosmetics — wrap the whole element they are applied to
+   (leaderboard rows, profile header card, username pills in nix feeds). */
+.border-blue{border:2px solid #4a9eff!important}
+.border-purple{border:2px solid #a855f7!important}
+.border-gold{border:2px solid #fbbf24!important}
+.border-rainbow{--cos-bg:var(--surface);border:2px solid transparent!important;background-image:linear-gradient(var(--cos-bg),var(--cos-bg)),linear-gradient(90deg,#ff6b6b,#fbbf24,#51cf66,#4a9eff,#a855f7);background-origin:border-box;background-clip:padding-box,border-box}
+/* The row hover tints the background — keep the rainbow visible and the
+   inner fill in step with it (the `background` shorthand would otherwise
+   wipe the gradient). */
+.list li.border-rainbow:hover,.feed li:hover .border-rainbow{--cos-bg:var(--surface-2)}
+.list li.border-rainbow:hover{background-color:var(--surface-2)}
+/* Give bordered list rows a little breathing room from the hairlines. */
+.list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-rainbow{margin-top:5px;margin-bottom:5px}
+
+/* Username pill in nix feeds. The always-present transparent border keeps
+   the layout identical for users without a border; a border cosmetic then
+   just paints it. */
+.feed-user{display:inline-block;color:var(--text);text-decoration:none;border:2px solid transparent;border-radius:999px;padding:1px 8px}
+
+/* Cosmetics switcher (profile) */
+.cos-hint{margin:0 0 6px;font-size:.8rem;color:var(--text-2)}
+.cos-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cos-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);width:52px;flex-shrink:0}
+.cos-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:600;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s,color .15s}
+@media (hover:hover){.cos-chip:hover{border-color:var(--accent)}}
+.cos-chip:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.cos-chip.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cos-chip.none{color:var(--text-2);font-weight:500}
+.cos-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cos-dot.blue{background:#4a9eff}
+.cos-dot.purple{background:#a855f7}
+.cos-dot.gold{background:#fbbf24}
+.cos-dot.rainbow{background:linear-gradient(90deg,#ff6b6b,#fbbf24,#51cf66,#4a9eff,#a855f7)}
 
 /* Battlepass title */
 .bp-title{font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:middle}
