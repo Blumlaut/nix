@@ -868,12 +868,25 @@ main > :nth-child(6) { animation-delay: .25s; }
   .me { display: none; }
 }
 
-@media (max-width: 480px) {
-  header { gap: 10px; padding: 10px 14px; }
-  nav.nav { gap: 2px; }
+/* Mobile header: brand + actions on row one, nav as a scrollable strip on
+   row two. Avoids the flex-wrap mess where links and the avatar wrap mid-row. */
+@media (max-width: 720px) {
+  header { flex-wrap: wrap; gap: 8px 12px; padding: 10px 14px; }
   .brand { font-size: 1.05rem; }
   .brand span { display: none; }
-  nav.nav a { font-size: .8rem; padding: 7px 8px; }
+  .hdr-right { margin-left: auto; }
+  nav.nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  nav.nav::-webkit-scrollbar { display: none; }
+  nav.nav a { flex: 0 0 auto; white-space: nowrap; font-size: .8rem; padding: 7px 10px; }
   main { padding: 20px 12px 56px; }
 }
 
