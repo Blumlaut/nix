@@ -20,6 +20,24 @@ function createUsersService(db, q) {
    * @param {{ isMe?: boolean }} [opts] the battlepass (tiers, claims, claim
    *   buttons) is private — only included for the profile owner themselves.
    */
+  /**
+   * Full achievement catalog for a user, each entry flagged `unlocked`. The
+   * profile page renders locked entries dimmed, so the catalog (not just the
+   * unlocked rows) must come with the profile — and it must be the profiled
+   * user's unlocks, not the viewer's.
+   */
+  function getAchievements(userId) {
+    const mine = new Set(q.userAchievements.all(userId).map((a) => a.key));
+    return q.allAchievements.all().map((a) => ({
+      key: a.key,
+      name: a.name,
+      description: a.description,
+      icon: a.icon,
+      category: a.category,
+      unlocked: mine.has(a.key),
+    }));
+  }
+
   function getProfile(userId, progression, { isMe = false } = {}) {
     const user = q.userById.get(userId);
     if (!user) return null;
@@ -28,7 +46,7 @@ function createUsersService(db, q) {
       user,
       stats: getUserStats(userId),
       xp: progression.getUserXp(userId),
-      achievements: q.userAchievements.all(userId),
+      achievements: getAchievements(userId),
       nemesis: progression.getNemesis(userId),
       cosmetics: progression.getUserCosmetics(userId),
       ...(isMe ? { battlepass: progression.getBattlepass(userId) } : {}),
@@ -37,7 +55,7 @@ function createUsersService(db, q) {
     };
   }
 
-  return { getUserStats, getProfile };
+  return { getUserStats, getAchievements, getProfile };
 }
 
 module.exports = { createUsersService };

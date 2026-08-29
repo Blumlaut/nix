@@ -142,6 +142,27 @@ test('profile assembles user data', () => {
   assert.ok(p.xp);
 });
 
+test('profile achievements show the profiled user, not the viewer', () => {
+  const { alice, bob } = seed();
+  // Alice nixed Bob enough times to pass the 10-nix and 25-nix thresholds.
+  for (let i = 0; i < 25; i++) q.insertNix.run(alice.id, bob.id);
+  // The profile route syncs the profiled user before assembling the profile.
+  prog.syncAchievements(alice.id);
+  prog.syncAchievements(bob.id);
+
+  const aliceAch = new Map(users.getProfile(alice.id, prog).achievements.map((a) => [a.key, a.unlocked]));
+  const bobAch = new Map(users.getProfile(bob.id, prog).achievements.map((a) => [a.key, a.unlocked]));
+
+  // Full catalog for both users, each with their own unlock state.
+  assert.equal(aliceAch.size, 15);
+  assert.equal(bobAch.size, 15);
+  assert.equal(aliceAch.get('nix_10'), true, 'alice (25 given) has Getting Warm');
+  assert.equal(aliceAch.get('nix_25'), true, 'alice (25 given) has Serial Nixer');
+  assert.equal(bobAch.get('nix_10'), false, 'bob never nixed — his own state, not alice\'s');
+  assert.equal(bobAch.get('nix_25'), false);
+  assert.equal(bobAch.get('first_received'), true);
+});
+
 test('battlepass is only included in the profile of the owner', () => {
   const { alice } = seed();
   // Someone else's (or a guest's) profile stays free of tier/claim state —

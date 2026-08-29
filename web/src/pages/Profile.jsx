@@ -87,7 +87,7 @@ export default function Profile() {
           )}
           <section className="card prof-section">
             <h2>🏅 Achievements</h2>
-            <Achievements />
+            <Achievements achievements={p.achievements} />
           </section>
         </div>
       </div>
@@ -215,13 +215,9 @@ function Cosmetics({ bp, claimed, cos, onSet }) {
   );
 }
 
-function Achievements() {
-  const [ach, setAch] = useState(null);
-  useEffect(() => {
-    api('/api/achievements').then((r) => {
-      if (r && r.status < 400) setAch(r.data);
-    });
-  }, []);
+// Rendered from the profile payload: these are the profiled user's
+// unlocks (the profile endpoint syncs them retroactively), not the viewer's.
+function Achievements({ achievements: ach }) {
   if (!ach) return null;
   const unlocked = ach.filter((a) => a.unlocked).length;
   return (
