@@ -21,13 +21,12 @@ const PUSH_UA_MAX = 300;
  * @param {object} deps.streaks     streaks service
  * @param {object} deps.progression progression service
  * @param {object} deps.users       users service
- * @param {object} deps.forum       forum service
  * @param {object} deps.push        push module
  * @param {object} deps.config      config
  */
 function createApiRouter(deps) {
   const {
-    queries, stats, streaks, progression, users, forum, push, config,
+    queries, stats, streaks, progression, users, push, config,
   } = deps;
   const router = express.Router();
 
@@ -298,58 +297,6 @@ function createApiRouter(deps) {
       profile.isMyNemesis = myNemesis && myNemesis.nemesisId === userId;
     }
     return res.json(profile);
-  });
-
-  // ── Forum ──────────────────────────────────────────────────────────────
-  router.get('/forum/threads', (req, res) => {
-    const threads = queries.listThreads.all(50);
-    if (req.isAuthenticated() && req.user.id) {
-      forum.attachMyVotes(req.user.id, threads, 'thread');
-    }
-    res.json(threads);
-  });
-
-  router.post('/forum/threads', requireSession(true), (req, res) => {
-    const title = String((req.body && req.body.title) || '').trim().slice(0, 200);
-    const body = String((req.body && req.body.body) || '').trim().slice(0, 5000);
-    if (title.length < 3) return res.status(400).json({ error: 'title too short' });
-    if (body.length < 3) return res.status(400).json({ error: 'body too short' });
-    const info = queries.createThread.run(req.user.id, title, body);
-    return res.status(201).json({ id: info.lastInsertRowid });
-  });
-
-  router.get('/forum/threads/:id', (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not found' });
-    const thread = queries.getThread.get(id);
-    if (!thread) return res.status(404).json({ error: 'thread not found' });
-    thread.replies = queries.getReplies.all(id);
-    if (req.isAuthenticated() && req.user.id) {
-      forum.attachMyVotes(req.user.id, thread.replies, 'reply');
-      thread.myVote = (
-        queries.userVotes.all(req.user.id).find((v) => v.target_type === 'thread' && v.target_id === id) || {}
-      ).direction || 0;
-    }
-    return res.json(thread);
-  });
-
-  router.post('/forum/threads/:id/reply', requireSession(true), (req, res) => {
-    const threadId = Number(req.params.id);
-    if (!Number.isInteger(threadId)) return res.status(400).json({ error: 'bad thread id' });
-    const body = String((req.body && req.body.body) || '').trim().slice(0, 5000);
-    if (body.length < 2) return res.status(400).json({ error: 'reply too short' });
-    const thread = queries.getThread.get(threadId);
-    if (!thread) return res.status(404).json({ error: 'thread not found' });
-    const info = queries.createReply.run(threadId, req.user.id, body);
-    return res.status(201).json({ id: info.lastInsertRowid });
-  });
-
-  router.post('/forum/vote', requireSession(true), (req, res) => {
-    const { targetType, targetId, direction } = req.body || {};
-    if (!['thread', 'reply'].includes(targetType)) return res.status(400).json({ error: 'invalid target type' });
-    const tid = Number(targetId);
-    if (!Number.isInteger(tid)) return res.status(400).json({ error: 'invalid target id' });
-    res.json(forum.castVote(req.user.id, targetType, tid, direction));
   });
 
   return router;

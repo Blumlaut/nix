@@ -12,7 +12,6 @@ const { createStatsService } = require('./services/stats');
 const { createStreaksService } = require('./services/streaks');
 const { createProgressionService } = require('./services/progression');
 const { createUsersService } = require('./services/users');
-const { createForumService } = require('./services/forum');
 const { createPush } = require('./push');
 const { createAuthRouter } = require('./routes/auth');
 const { createApiRouter } = require('./routes/api');
@@ -31,7 +30,6 @@ function createApp(config) {
   const streaks = createStreaksService(db, queries);
   const progression = createProgressionService(db, queries);
   const users = createUsersService(db, queries);
-  const forum = createForumService(db, queries);
   const push = createPush(queries, dataDir);
 
   const app = express();
@@ -72,7 +70,7 @@ function createApp(config) {
 
   app.use(createAuthRouter(config, queries));
   app.use('/api', createApiRouter({
-    queries, stats, streaks, progression, users, forum, push, config,
+    queries, stats, streaks, progression, users, push, config,
   }));
 
   // Keep the classic /nix easter egg outside the SPA.

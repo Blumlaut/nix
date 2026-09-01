@@ -108,30 +108,6 @@ function prepareAll(db) {
         border = excluded.border,
         badge = excluded.badge`),
 
-    // ── forum ─────────────────────────────────────────────────────────────
-    createThread: db.prepare('INSERT INTO threads (author_id, title, body) VALUES (?, ?, ?)'),
-    listThreads: db.prepare(`
-      SELECT t.*, u.name AS author,
-        (SELECT COUNT(*) FROM replies r WHERE r.thread_id = t.id) AS reply_count,
-        (SELECT COALESCE(SUM(v.direction),0) FROM votes v WHERE v.target_type='thread' AND v.target_id=t.id) AS score
-      FROM threads t JOIN users u ON u.id = t.author_id
-      ORDER BY t.id DESC LIMIT ?`),
-    getThread: db.prepare(`
-      SELECT t.*, u.name AS author, u.discord_id AS author_discord,
-        (SELECT COALESCE(SUM(v.direction),0) FROM votes v WHERE v.target_type='thread' AND v.target_id=t.id) AS score
-      FROM threads t JOIN users u ON u.id = t.author_id WHERE t.id = ?`),
-    getReplies: db.prepare(`
-      SELECT r.*, u.name AS author, u.discord_id AS author_discord,
-        (SELECT COALESCE(SUM(v.direction),0) FROM votes v WHERE v.target_type='reply' AND v.target_id=r.id) AS score
-      FROM replies r JOIN users u ON u.id = r.author_id WHERE r.thread_id = ? ORDER BY r.id ASC`),
-    createReply: db.prepare('INSERT INTO replies (thread_id, author_id, body) VALUES (?, ?, ?)'),
-    voteGet: db.prepare('SELECT direction FROM votes WHERE user_id = ? AND target_type = ? AND target_id = ?'),
-    voteInsert: db.prepare('INSERT INTO votes (user_id, target_type, target_id, direction) VALUES (?, ?, ?, ?)'),
-    voteUpdate: db.prepare('UPDATE votes SET direction = ? WHERE user_id = ? AND target_type = ? AND target_id = ?'),
-    voteDelete: db.prepare('DELETE FROM votes WHERE user_id = ? AND target_type = ? AND target_id = ?'),
-    userVotes: db.prepare('SELECT target_type, target_id, direction FROM votes WHERE user_id = ?'),
-    voteScore: db.prepare('SELECT COALESCE(SUM(direction),0) AS s FROM votes WHERE target_type=? AND target_id=?'),
-
     // ── misc stats ────────────────────────────────────────────────────────
     today: db.prepare("SELECT date('now') AS d"),
     nowIso: db.prepare("SELECT datetime('now') AS t"),

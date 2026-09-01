@@ -7,7 +7,6 @@ const Board = lazy(() => import('./pages/Board'));
 const Stats = lazy(() => import('./pages/Stats'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Forum = lazy(() => import('./pages/Forum'));
 const Changelog = lazy(() => import('./pages/Changelog'));
 const Rules = lazy(() => import('./pages/Rules'));
 
@@ -20,8 +19,6 @@ export default function App() {
           <Route path="/setup" element={<Board />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/forum" element={<Forum />} />
-          <Route path="/forum/thread/:id" element={<Forum />} />
           <Route path="/user/:id" element={<Profile />} />
           <Route path="/changelog" element={<Changelog />} />
           <Route path="/rules" element={<Rules />} />

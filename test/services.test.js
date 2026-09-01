@@ -12,7 +12,6 @@ const { createStatsService } = require('../src/services/stats');
 const { createStreaksService } = require('../src/services/streaks');
 const { createProgressionService } = require('../src/services/progression');
 const { createUsersService } = require('../src/services/users');
-const { createForumService } = require('../src/services/forum');
 
 let db;
 let q;
@@ -20,7 +19,6 @@ let stats;
 let streaks;
 let prog;
 let users;
-let forum;
 let tmpDb;
 
 before(() => {
@@ -31,7 +29,6 @@ before(() => {
   streaks = createStreaksService(db, q);
   prog = createProgressionService(db, q);
   users = createUsersService(db, q);
-  forum = createForumService(db, q);
 });
 
 after(() => {
@@ -109,18 +106,6 @@ test('streaks track runs', () => {
   const { current } = streaks.getStreaks();
   assert.ok(current[alice.id] >= 2, 'alice has a run of nixes');
   assert.equal(current[bob.id], 0, 'bob (the target) is not on a streak');
-});
-
-test('forum voting toggles and scores', () => {
-  const { alice, bob } = seed();
-  const info = q.createThread.run(alice.id, 'Hello', 'Body text');
-  const tid = info.lastInsertRowid;
-
-  assert.deepEqual(forum.castVote(bob.id, 'thread', tid, 1), { voted: 1, score: 1 });
-  // voting the same direction removes the vote
-  assert.deepEqual(forum.castVote(bob.id, 'thread', tid, 1), { voted: 0, score: 0 });
-  // opposite direction flips
-  assert.deepEqual(forum.castVote(bob.id, 'thread', tid, -1), { voted: -1, score: -1 });
 });
 
 test('stats service produces series', () => {

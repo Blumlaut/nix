@@ -8,7 +8,6 @@ import UserAvatar from './UserAvatar';
 const NAV = [
   { to: '/', label: 'Board', end: true },
   { to: '/stats', label: 'Stats' },
-  { to: '/forum', label: 'Forum' },
   { to: '/rules', label: 'Rules' },
   { to: '/changelog', label: 'Changelog' },
 ];

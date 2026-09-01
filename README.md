@@ -23,7 +23,7 @@ src/
     schema.js        authoritative, idempotent SQLite schema
     seed.js          achievement catalog seed
     queries.js       prepared statements, grouped by domain
-  services/          domain logic: stats, streaks, progression, users, forum
+  services/          domain logic: stats, streaks, progression, users
   middleware/        auth (requireSession), errors
   routes/            auth (Discord OAuth), api (/api/*)
   push.js            web push (VAPID + fan-out)
