@@ -75,12 +75,14 @@ function createApiRouter(deps) {
     const allUsers = queries.allUsers.all();
     const nameById = new Map(allUsers.map((u) => [u.id, u.name]));
 
+    const avatarById = new Map(allUsers.map((u) => [u.id, u.avatar_url]));
+
     const { current } = streaks.getStreaks();
     const streakRows = Object.entries(current)
       .filter(([, n]) => n >= 2)
       .sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))
       .slice(0, STREAK_TOP)
-      .map(([id, streak]) => ({ id: Number(id), name: nameById.get(Number(id)), streak }));
+      .map(([id, streak]) => ({ id: Number(id), name: nameById.get(Number(id)), avatar: avatarById.get(Number(id)) || null, streak }));
 
     const leaderboard = queries.leaderboard.all(BOARD_TOP).map((r) => {
       const xp = progression.getUserXp(r.uid);
@@ -101,9 +103,10 @@ function createApiRouter(deps) {
       me: { id: req.user.id, name: req.user.name, avatar: req.user.avatarUrl || null },
       targets: allUsers.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar_url || null })),
       leaderboard,
-      mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, n: r.n })),
+      mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, avatar: r.avatar || null, n: r.n })),
       topPairs: queries.topPairs.all(BOARD_TOP).map((r) => ({
-        auid: r.auid, buid: r.buid, nixer: r.nixer, target: r.target, n: r.n,
+        auid: r.auid, buid: r.buid, nixer: r.nixer, target: r.target,
+        aAvatar: r.aAvatar || null, bAvatar: r.bAvatar || null, n: r.n,
       })),
       streaks: streakRows,
       recent: withBorders(queries.recent.all(RECENT_PAGE, 0)),

@@ -549,6 +549,9 @@ input::placeholder { color: var(--placeholder); }
   text-overflow: ellipsis;
   min-width: 0;
 }
+/* avatar + name as one unit so they stay aligned inside .pair */
+.pair-user { display: inline-flex; align-items: center; gap: 5px; }
+.list .pair .verb { margin: 0 7px; }
 
 .feed li {
   display: flex;

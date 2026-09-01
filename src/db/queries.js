@@ -24,11 +24,12 @@ function prepareAll(db) {
       FROM nixes nx JOIN users u ON u.id = nx.nixer_id
       GROUP BY nx.nixer_id ORDER BY n DESC, u.name_ci ASC LIMIT ?`),
     mostNixed: db.prepare(`
-      SELECT u.id AS uid, u.name AS name, COUNT(*) AS n
+      SELECT u.id AS uid, u.name AS name, u.avatar_url AS avatar, COUNT(*) AS n
       FROM nixes nx JOIN users u ON u.id = nx.nixed_id
       GROUP BY nx.nixed_id ORDER BY n DESC, u.name_ci ASC LIMIT ?`),
     topPairs: db.prepare(`
-      SELECT a.id AS auid, a.name AS nixer, b.id AS buid, b.name AS target, COUNT(*) AS n
+      SELECT a.id AS auid, a.name AS nixer, a.avatar_url AS aAvatar,
+             b.id AS buid, b.name AS target, b.avatar_url AS bAvatar, COUNT(*) AS n
       FROM nixes nx JOIN users a ON a.id = nx.nixer_id JOIN users b ON b.id = nx.nixed_id
       GROUP BY nx.nixer_id, nx.nixed_id
       ORDER BY n DESC, a.name_ci ASC, b.name_ci ASC LIMIT ?`),

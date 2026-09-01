@@ -148,7 +148,11 @@ export default function Board() {
               rows={board.mostNixed}
               empty="No nixes yet."
               render={(r, i) => (
-                <li key={i}><Link className="feed-user" to={`/user/${r.uid}`}>{r.name}</Link><span className="n">{r.n}</span></li>
+                <li key={i} className="user-row">
+                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
+                  <Link className="user-link" to={`/user/${r.uid}`}>{r.name}</Link>
+                  <span className="n">🛡️ {r.n}</span>
+                </li>
               )}
             />
           </ol>
@@ -164,9 +168,15 @@ export default function Board() {
               render={(r, i) => (
                 <li key={i}>
                   <span className="pair">
-                    <Link className="feed-user" to={`/user/${r.auid}`}><b>{r.nixer}</b></Link>
-                    {' '}<span className="verb">nixed</span>{' '}
-                    <Link className="feed-user" to={`/user/${r.buid}`}><b>{r.target}</b></Link>
+                    <span className="pair-user">
+                      <UserAvatar name={r.nixer} src={r.aAvatar || null} size={20} />
+                      <Link className="feed-user" to={`/user/${r.auid}`}><b>{r.nixer}</b></Link>
+                    </span>
+                    <span className="verb">nixed</span>
+                    <span className="pair-user">
+                      <UserAvatar name={r.target} src={r.bAvatar || null} size={20} />
+                      <Link className="feed-user" to={`/user/${r.buid}`}><b>{r.target}</b></Link>
+                    </span>
                   </span>
                   <span className="n">{r.n}</span>
                 </li>
@@ -183,7 +193,11 @@ export default function Board() {
               rows={board.streaks}
               empty="Nobody's on a streak right now."
               render={(r, i) => (
-                <li key={i}><Link className="feed-user" to={`/user/${r.id}`}>{r.name}</Link><span className="n">🔥 {r.streak}</span></li>
+                <li key={i} className="user-row">
+                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
+                  <Link className="user-link" to={`/user/${r.id}`}>{r.name}</Link>
+                  <span className="n">🔥 {r.streak}</span>
+                </li>
               )}
             />
           </ol>
