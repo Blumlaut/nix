@@ -574,7 +574,7 @@ input::placeholder { color: var(--placeholder); }
 
 @media (hover: hover) {
   .list li:hover, .feed li:hover {
-    background: var(--surface-2);
+    background-color: var(--surface-2);
     box-shadow: inset 0 0 0 1px var(--ring-soft);
   }
 }
@@ -1063,11 +1063,10 @@ main > :nth-child(6) { animation-delay: .25s; }
 .border-purple{border:2px solid #a855f7!important}
 .border-gold{border:2px solid #fbbf24!important}
 .border-rainbow{--cos-bg:var(--surface);border:2px solid transparent!important;background-image:linear-gradient(var(--cos-bg),var(--cos-bg)),linear-gradient(90deg,#ff6b6b,#fbbf24,#51cf66,#4a9eff,#a855f7);background-origin:border-box;background-clip:padding-box,border-box}
-/* The row hover tints the background — keep the rainbow visible and the
-   inner fill in step with it (the `background` shorthand would otherwise
-   wipe the gradient). */
+/* The row hover tints the background — keep the rainbow fill in step with
+   it (hover must use background-color, never the `background` shorthand,
+   which would wipe the gradient). */
 .list li.border-rainbow:hover,.feed li:hover .border-rainbow{--cos-bg:var(--surface-2)}
-.list li.border-rainbow:hover{background-color:var(--surface-2)}
 /* Give bordered list rows a little breathing room from the hairlines. */
 .list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-rainbow{margin-top:5px;margin-bottom:5px}
 
