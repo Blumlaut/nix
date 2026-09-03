@@ -62,7 +62,7 @@ export function PairListRow({ a, b, n }) {
         <span className="verb">nixed</span>
         {user(b)}
       </span>
-      <span className="n">{n}</span>
+      <span className="n">💞 {n}</span>
     </li>
   );
 }
