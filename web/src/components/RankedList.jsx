@@ -44,14 +44,15 @@ export function UserListRow({ uid, name, avatar, title, border, size = 26, child
 
 /**
  * "A nixed B" row: two avatar+name units around a verb, count pinned right.
- * @param {{name: string, uid: string|number, avatar: ?string}} a
- * @param {{name: string, uid: string|number, avatar: ?string}} b
+ * @param {{name: string, uid: string|number, avatar: ?string, border: ?string}} a
+ * @param {{name: string, uid: string|number, avatar: ?string, border: ?string}} b
  */
 export function PairListRow({ a, b, n }) {
   const user = (u) => (
     <span className="pair-user">
       <UserAvatar name={u.name} src={u.avatar || null} size={20} />
-      <Link className="feed-user" to={`/user/${u.uid}`}><b>{u.name}</b></Link>
+      {/* Unlocked border cosmetics paint the name pill (see .feed-user + .border-*). */}
+      <Link className={u.border ? `feed-user border-${u.border}` : 'feed-user'} to={`/user/${u.uid}`}><b>{u.name}</b></Link>
     </span>
   );
   return (

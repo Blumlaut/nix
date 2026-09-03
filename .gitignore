@@ -17,3 +17,5 @@ web/dist/
 # misc
 *.log
 .DS_Store
+# playwright artifacts
+test-results/

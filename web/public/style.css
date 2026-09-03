@@ -516,13 +516,29 @@ input::placeholder { color: var(--placeholder); }
   font-family: var(--font-display);
 }
 
-/* "A nixed B" stays on one line; ellipsis if the card is very narrow */
-.list .pair, .feed .pair {
+/* "A nixed B" stays on one line; ellipsis if the card is very narrow. The
+   feed rows are plain inline text (no avatars), so baseline alignment works
+   there and the whole line ellipsizes. */
+.feed .pair {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
+/* Ranked pair rows flex so the verb shares the row's center line: as plain
+   inline text it would sit on the pair-user's baseline (the avatar's bottom
+   edge) and drift off the avatars'/names' height. Same bug family as #3/#9 —
+   center everything in one place. Name pills shrink with ellipsis if the
+   card is very narrow. */
+.list .pair {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+}
+.list .pair .feed-user { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.list .pair .verb { flex-shrink: 0; }
 /* avatar + name as one unit so they stay aligned inside .pair */
 .pair-user { display: inline-flex; align-items: center; gap: 5px; }
 /* Ranked rows (components/RankedList.jsx) are ALWAYS center-aligned: with

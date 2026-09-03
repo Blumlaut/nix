@@ -52,7 +52,7 @@ async function mockAuth(page) {
       { uid: '1', name: 'TestUser', avatar: null, n: 3, received: 4, level: 7, title: 'Nix Adept', border: null },
       { uid: '2', name: 'Florian', avatar: null, n: 4, received: 3, level: 9, title: 'Nix Master', border: null },
     ],
-    mostNixed: [{ uid: '1', name: 'TestUser', n: 4 }],
+    mostNixed: [{ uid: '1', name: 'TestUser', n: 4, border: null }],
     topPairs: [],
     streaks: [],
     recent: [],

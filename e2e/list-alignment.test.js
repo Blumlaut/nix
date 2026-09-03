@@ -19,18 +19,18 @@ test('leaderboard rows keep left content aligned regardless of value width', wit
       { uid: '4', name: 'Carol', avatar: null, n: 4, received: 128, level: 2, title: null, border: null },
     ],
     mostNixed: [
-      { uid: '2', name: 'Alice', avatar: null, n: 4 },
-      { uid: '3', name: 'Bob', avatar: null, n: 42 },
-      { uid: '4', name: 'Carol', avatar: null, n: 128 },
+      { uid: '2', name: 'Alice', avatar: null, n: 4, border: null },
+      { uid: '3', name: 'Bob', avatar: null, n: 42, border: 'gold' },
+      { uid: '4', name: 'Carol', avatar: null, n: 128, border: null },
     ],
     topPairs: [
-      { nixer: 'Alice', auid: '2', aAvatar: null, target: 'Bob', buid: '3', bAvatar: null, n: 4 },
-      { nixer: 'Bob', auid: '3', aAvatar: null, target: 'Carol', buid: '4', bAvatar: null, n: 42 },
-      { nixer: 'Carol', auid: '4', aAvatar: null, target: 'Alice', buid: '2', bAvatar: null, n: 128 },
+      { nixer: 'Alice', auid: '2', aAvatar: null, target: 'Bob', buid: '3', bAvatar: null, n: 4, aBorder: 'gold', bBorder: null },
+      { nixer: 'Bob', auid: '3', aAvatar: null, target: 'Carol', buid: '4', bAvatar: null, n: 42, aBorder: 'gold', bBorder: null },
+      { nixer: 'Carol', auid: '4', aAvatar: null, target: 'Alice', buid: '2', bAvatar: null, n: 128, aBorder: null, bBorder: 'gold' },
     ],
     streaks: [
-      { id: '2', name: 'Alice', avatar: null, streak: 2 },
-      { id: '3', name: 'Bob', avatar: null, streak: 27 },
+      { id: '2', name: 'Alice', avatar: null, streak: 2, border: null },
+      { id: '3', name: 'Bob', avatar: null, streak: 27, border: 'gold' },
     ],
     recent: [],
     recentTotal: 0,
@@ -111,13 +111,29 @@ test('leaderboard rows keep left content aligned regardless of value width', wit
       `top-pair rows not aligned ${where}: ${JSON.stringify(pairLefts)}`
     );
 
+    // Unlockable border cosmetics render on every ranked card, not just
+    // Top nixers: framed rows (user-row border-*) and pair name pills.
+    assert.strictEqual(await page.locator('#most-nixed li.user-row.border-gold').count(), 1,
+      `most-nixed row should paint its unlocked border ${where}`);
+    assert.strictEqual(await page.locator('#streaks li.user-row.border-gold').count(), 1,
+      `streak row should paint its unlocked border ${where}`);
+    assert.strictEqual(await page.locator('.pair-row a.border-gold').count(), 3,
+      `pair name pills should paint unlocked borders ${where}`);
+    const pillColor = await page.locator('.pair-row a.border-gold').first()
+      .evaluate((el) => getComputedStyle(el).borderTopColor);
+    assert.notStrictEqual(pillColor, 'rgba(0, 0, 0, 0)',
+      `pair pill border must be painted, not just classed ${where}`);
+
     // Issues #3/#9: every row child (avatar, name, meta, value) must be
     // vertically centered within its row — in every card, not just Top pairs.
+    // .pair .verb is checked separately: as inline text it sits on the
+    // pair-user's baseline (the avatar's bottom edge) and drifts off the
+    // names'/avatars' height unless the pair row flexes and centers it.
     await page.$$eval('.card .list li:not(.empty)', (rows) =>
       rows.forEach((li) => {
         const row = li.getBoundingClientRect();
         const rowCenter = (row.top + row.bottom) / 2;
-        li.querySelectorAll('.MuiAvatar-root, a, .n, .user-meta, .user-nixes, .pair').forEach((el) => {
+        li.querySelectorAll('.MuiAvatar-root, a, .n, .user-meta, .user-nixes, .pair, .pair .verb').forEach((el) => {
           const b = el.getBoundingClientRect();
           const center = (b.top + b.bottom) / 2;
           if (Math.abs(center - rowCenter) > 3) {

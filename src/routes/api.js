@@ -77,12 +77,20 @@ function createApiRouter(deps) {
 
     const avatarById = new Map(allUsers.map((u) => [u.id, u.avatar_url]));
 
+    // Active cosmetic border per user, cached for the request. Lets every
+    // ranked card (not just Top nixers) paint unlocked border effects.
+    const borderCache = new Map();
+    const activeBorder = (uid) => {
+      if (!borderCache.has(uid)) borderCache.set(uid, progression.getUserCosmetics(uid).border);
+      return borderCache.get(uid);
+    };
+
     const { current } = streaks.getStreaks();
     const streakRows = Object.entries(current)
       .filter(([, n]) => n >= 2)
       .sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))
       .slice(0, STREAK_TOP)
-      .map(([id, streak]) => ({ id: Number(id), name: nameById.get(Number(id)), avatar: avatarById.get(Number(id)) || null, streak }));
+      .map(([id, streak]) => ({ id: Number(id), name: nameById.get(Number(id)), avatar: avatarById.get(Number(id)) || null, streak, border: activeBorder(Number(id)) }));
 
     const leaderboard = queries.leaderboard.all(BOARD_TOP).map((r) => {
       const xp = progression.getUserXp(r.uid);
@@ -103,10 +111,11 @@ function createApiRouter(deps) {
       me: { id: req.user.id, name: req.user.name, avatar: req.user.avatarUrl || null },
       targets: allUsers.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar_url || null })),
       leaderboard,
-      mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, avatar: r.avatar || null, n: r.n })),
+      mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, avatar: r.avatar || null, n: r.n, border: activeBorder(r.uid) })),
       topPairs: queries.topPairs.all(BOARD_TOP).map((r) => ({
         auid: r.auid, buid: r.buid, nixer: r.nixer, target: r.target,
         aAvatar: r.aAvatar || null, bAvatar: r.bAvatar || null, n: r.n,
+        aBorder: activeBorder(r.auid), bBorder: activeBorder(r.buid),
       })),
       streaks: streakRows,
       recent: withBorders(queries.recent.all(RECENT_PAGE, 0)),

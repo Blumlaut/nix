@@ -129,7 +129,7 @@ export default function Board() {
         <div className="card" id="most-nixed">
           <h2>Most nixed</h2>
           <RankedList rows={board.mostNixed} empty="No nixes yet." row={(r) => (
-            <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar}>
+            <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar} border={r.border}>
               <span className="n">🛡️ {r.n}</span>
             </UserListRow>
           )} />
@@ -142,8 +142,8 @@ export default function Board() {
             <PairListRow
               key={i}
               n={r.n}
-              a={{ name: r.nixer, uid: r.auid, avatar: r.aAvatar }}
-              b={{ name: r.target, uid: r.buid, avatar: r.bAvatar }}
+              a={{ name: r.nixer, uid: r.auid, avatar: r.aAvatar, border: r.aBorder }}
+              b={{ name: r.target, uid: r.buid, avatar: r.bAvatar, border: r.bBorder }}
             />
           )} />
         </div>
@@ -152,7 +152,7 @@ export default function Board() {
         <div className="card" id="streaks">
           <h2>🔥 On a streak</h2>
           <RankedList rows={board.streaks} empty="Nobody's on a streak right now." row={(r) => (
-            <UserListRow key={r.id} uid={r.id} name={r.name} avatar={r.avatar}>
+            <UserListRow key={r.id} uid={r.id} name={r.name} avatar={r.avatar} border={r.border}>
               <span className="n">🔥 {r.streak}</span>
             </UserListRow>
           )} />
