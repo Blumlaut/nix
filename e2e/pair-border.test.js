@@ -32,15 +32,19 @@ test('top pairs border frames wrap avatar + name (#11)', withApp(async (ctx) => 
   await framed.waitFor({ timeout: 10_000 });
   const info = await framed.evaluate((el) => {
     const cs = getComputedStyle(el);
+    const name = el.querySelector('.pair-name');
     return {
       border: cs.borderTopColor,
       hasAvatar: !!el.querySelector('img, .MuiAvatar-root'),
-      pillBorder: getComputedStyle(el.querySelector('.feed-user')).borderTopColor,
+      nameBorderWidth: getComputedStyle(name).borderTopWidth,
+      padLeft: getComputedStyle(el).paddingLeft,
+      padRight: getComputedStyle(el).paddingRight,
     };
   });
   assert.doesNotMatch(info.border, /rgba\(0, 0, 0, 0\)/, 'framed pair-user must have a visible border');
   assert.ok(info.hasAvatar, 'avatar must sit inside the frame');
-  assert.match(info.pillBorder, /rgba\(0, 0, 0, 0\)/, 'inner name pill keeps a transparent border');
+  assert.strictEqual(info.nameBorderWidth, '0px', 'inner name link must not add a second border in the frame');
+  assert.strictEqual(info.padLeft, info.padRight, 'badge padding must be symmetric like the feed frame');
 
   // The unframed counterpart carries the same transparent baseline border, so
   // a cosmetic only adds color and framed/unframed rows stay identically sized.

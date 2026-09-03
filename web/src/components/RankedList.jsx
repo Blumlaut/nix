@@ -50,11 +50,13 @@ export function UserListRow({ uid, name, avatar, title, border, size = 26, child
 export function PairListRow({ a, b, n }) {
   const user = (u) => (
     // Unlocked border cosmetics frame the avatar + name unit as one badge
-    // (see .pair-user + .border-*); the transparent baseline border keeps
-    // framed and unframed rows identically sized.
+    // (.pair-user carries the same metrics 1:1 as the .feed-user frame in
+    // Recent nixes, #11). The inner link is plain text — no second border or
+    // padding inside the frame. The transparent baseline border keeps framed
+    // and unframed rows identically sized.
     <span className={u.border ? `pair-user border-${u.border}` : 'pair-user'}>
       <UserAvatar name={u.name} src={u.avatar || null} size={20} />
-      <Link className="feed-user" to={`/user/${u.uid}`}><b>{u.name}</b></Link>
+      <Link className="pair-name" to={`/user/${u.uid}`}><b>{u.name}</b></Link>
     </span>
   );
   return (
