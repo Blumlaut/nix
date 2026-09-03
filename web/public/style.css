@@ -413,6 +413,9 @@ main.narrow { max-width: 560px; }
 .card > h1 { margin: 0 0 8px; font-size: 1.3rem; font-weight: 700; font-family: var(--font-display); letter-spacing: -.01em; }
 .card > h2 { margin: 0 0 16px; font-size: 1.02rem; font-weight: 600; font-family: var(--font-display); letter-spacing: .01em; }
 
+/* cards share a row's height so side-by-side cards (e.g. Top pairs / On a streak) stay level */
+.MuiGrid-root > .card { height: 100%; }
+
 /* Streak card gets a warm identity */
 .card:has(#streaks) { border-color: var(--warm-border); }
 @media (hover: hover) {
