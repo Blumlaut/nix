@@ -544,7 +544,10 @@ input::placeholder { color: var(--placeholder); }
 /* Ranked pair rows: the avatar + name unit is the frame target (#11). The
    always-present transparent border keeps framed and unframed badges the same
    size, so a cosmetic only adds color — same layout trick as .feed-user. */
-.list .pair-user { min-width: 0; border: 2px solid transparent; border-radius: var(--radius-pill); padding: 2px 3px; }
+/* Extra left padding: a circular avatar reads as closer to the frame edge
+   than the name does (no left side bearing), so the left gap gets +2px to
+   match the perceived right gap. (#11 follow-up) */
+.list .pair-user { min-width: 0; border: 2px solid transparent; border-radius: var(--radius-pill); padding: 2px 3px 2px 5px; }
 /* Ranked rows (components/RankedList.jsx) are ALWAYS center-aligned: with
    align-items: baseline an avatar's baseline (bottom of the image) shoves the
    text group down off the row's center. Issues #3 (user rows) and #9 (pair
