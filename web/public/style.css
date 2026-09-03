@@ -538,6 +538,7 @@ input::placeholder { color: var(--placeholder); }
   color: var(--text);
   font-weight: 700;
   flex-shrink: 0;
+  margin-left: auto; /* pin value right; keeps avatars/names left-aligned regardless of value width */
   font-variant-numeric: tabular-nums;
   font-family: var(--font-display);
 }
