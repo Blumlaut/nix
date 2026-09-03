@@ -555,6 +555,9 @@ input::placeholder { color: var(--placeholder); }
 }
 /* avatar + name as one unit so they stay aligned inside .pair */
 .pair-user { display: inline-flex; align-items: center; gap: 5px; }
+/* Top pairs rows: with align-items: baseline the avatar's baseline (bottom of
+   the image) shifts the whole "A nixed B" group vertically — center like .user-row */
+.list li.pair-row { align-items: center; }
 .list .pair .verb { margin: 0 7px; }
 
 .feed li {

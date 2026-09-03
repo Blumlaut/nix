@@ -73,4 +73,22 @@ test('leaderboard rows keep left content aligned regardless of value width', wit
     pairLefts.every((l) => Math.abs(l - pairLefts[0]) < 1),
     `top-pair rows not aligned: ${JSON.stringify(pairLefts)}`
   );
+
+  // Issue #9: avatars/names must sit at the same vertical position as the rest
+  // of the row (count value), i.e. centered within the row.
+  await page.$$eval('.card .list li.pair-row', (els) =>
+    els.forEach((li) => {
+      const row = li.getBoundingClientRect();
+      const rowCenter = (row.top + row.bottom) / 2;
+      li.querySelectorAll('.pair-user .MuiAvatar-root, .n').forEach((el) => {
+        const b = el.getBoundingClientRect();
+        const center = (b.top + b.bottom) / 2;
+        if (Math.abs(center - rowCenter) > 3) {
+          throw new Error(
+            `top-pair child not vertically centered: offset ${Math.abs(center - rowCenter).toFixed(1)}px`
+          );
+        }
+      });
+    })
+  );
 }));

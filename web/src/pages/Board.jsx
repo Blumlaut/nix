@@ -166,7 +166,7 @@ export default function Board() {
               rows={board.topPairs}
               empty="No nixes yet."
               render={(r, i) => (
-                <li key={i}>
+                <li key={i} className="pair-row">
                   <span className="pair">
                     <span className="pair-user">
                       <UserAvatar name={r.nixer} src={r.aAvatar || null} size={20} />
