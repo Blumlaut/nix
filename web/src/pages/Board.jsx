@@ -19,15 +19,11 @@ import {
   TextField,
 } from '@mui/material';
 import UserAvatar from '../components/UserAvatar';
+import { RankedList, UserListRow, PairListRow } from '../components/RankedList';
 
 const RECENT_PAGE = 10;
 const RECENT_CAP = 100;
 const POLL_MS = 20000;
-
-function CountedList({ rows, empty, render }) {
-  if (!rows.length) return <li className="empty">{empty}</li>;
-  return rows.map((r, i) => render(r, i));
-}
 
 export default function Board() {
   const [me, setMe] = useState(null);
@@ -117,90 +113,49 @@ export default function Board() {
         <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card">
           <h2>Top nixers</h2>
-          <ol className="list">
-            <CountedList
-              rows={board.leaderboard}
-              empty="No users yet."
-              render={(r, i) => (
-                <li key={i} className={`user-row${r.border ? ` border-${r.border}` : ''}`}>
-                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
-                  <Link className="user-link" to={`/user/${r.uid}`}>
-                    <span className="uname">{r.name}</span>
-                    {r.title && <span className="bp-title">{r.title}</span>}
-                  </Link>
-                  <span className="user-meta">L{r.level}</span>
-                  <span className="user-nixes">
-                    <span className="nix-given">⚔️ {r.n}</span>
-                    <span className="nix-sep">·</span>
-                    <span className="nix-received">🛡️ {r.received}</span>
-                  </span>
-                </li>
-              )}
-            />
-          </ol>
+          <RankedList rows={board.leaderboard} empty="No users yet." row={(r) => (
+            <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar} title={r.title} border={r.border}>
+              <span className="user-meta">L{r.level}</span>
+              <span className="user-nixes">
+                <span className="nix-given">⚔️ {r.n}</span>
+                <span className="nix-sep">·</span>
+                <span className="nix-received">🛡️ {r.received}</span>
+              </span>
+            </UserListRow>
+          )} />
         </div>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card" id="most-nixed">
           <h2>Most nixed</h2>
-          <ol className="list">
-            <CountedList
-              rows={board.mostNixed}
-              empty="No nixes yet."
-              render={(r, i) => (
-                <li key={i} className="user-row">
-                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
-                  <Link className="user-link" to={`/user/${r.uid}`}>{r.name}</Link>
-                  <span className="n">🛡️ {r.n}</span>
-                </li>
-              )}
-            />
-          </ol>
+          <RankedList rows={board.mostNixed} empty="No nixes yet." row={(r) => (
+            <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar}>
+              <span className="n">🛡️ {r.n}</span>
+            </UserListRow>
+          )} />
         </div>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
         <div className="card">
           <h2>Top pairs</h2>
-          <ol className="list">
-            <CountedList
-              rows={board.topPairs}
-              empty="No nixes yet."
-              render={(r, i) => (
-                <li key={i} className="pair-row">
-                  <span className="pair">
-                    <span className="pair-user">
-                      <UserAvatar name={r.nixer} src={r.aAvatar || null} size={20} />
-                      <Link className="feed-user" to={`/user/${r.auid}`}><b>{r.nixer}</b></Link>
-                    </span>
-                    <span className="verb">nixed</span>
-                    <span className="pair-user">
-                      <UserAvatar name={r.target} src={r.bAvatar || null} size={20} />
-                      <Link className="feed-user" to={`/user/${r.buid}`}><b>{r.target}</b></Link>
-                    </span>
-                  </span>
-                  <span className="n">{r.n}</span>
-                </li>
-              )}
+          <RankedList rows={board.topPairs} empty="No nixes yet." row={(r, i) => (
+            <PairListRow
+              key={i}
+              n={r.n}
+              a={{ name: r.nixer, uid: r.auid, avatar: r.aAvatar }}
+              b={{ name: r.target, uid: r.buid, avatar: r.bAvatar }}
             />
-          </ol>
+          )} />
         </div>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }} sx={{ minWidth: 0 }}>
-        <div className="card">
+        <div className="card" id="streaks">
           <h2>🔥 On a streak</h2>
-          <ol className="list">
-            <CountedList
-              rows={board.streaks}
-              empty="Nobody's on a streak right now."
-              render={(r, i) => (
-                <li key={i} className="user-row">
-                  <UserAvatar name={r.name} src={r.avatar || null} size={26} />
-                  <Link className="user-link" to={`/user/${r.id}`}>{r.name}</Link>
-                  <span className="n">🔥 {r.streak}</span>
-                </li>
-              )}
-            />
-          </ol>
+          <RankedList rows={board.streaks} empty="Nobody's on a streak right now." row={(r) => (
+            <UserListRow key={r.id} uid={r.id} name={r.name} avatar={r.avatar}>
+              <span className="n">🔥 {r.streak}</span>
+            </UserListRow>
+          )} />
         </div>
         </Grid>
       </Grid>
