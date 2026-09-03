@@ -49,10 +49,12 @@ export function UserListRow({ uid, name, avatar, title, border, size = 26, child
  */
 export function PairListRow({ a, b, n }) {
   const user = (u) => (
-    <span className="pair-user">
+    // Unlocked border cosmetics frame the avatar + name unit as one badge
+    // (see .pair-user + .border-*); the transparent baseline border keeps
+    // framed and unframed rows identically sized.
+    <span className={u.border ? `pair-user border-${u.border}` : 'pair-user'}>
       <UserAvatar name={u.name} src={u.avatar || null} size={20} />
-      {/* Unlocked border cosmetics paint the name pill (see .feed-user + .border-*). */}
-      <Link className={u.border ? `feed-user border-${u.border}` : 'feed-user'} to={`/user/${u.uid}`}><b>{u.name}</b></Link>
+      <Link className="feed-user" to={`/user/${u.uid}`}><b>{u.name}</b></Link>
     </span>
   );
   return (

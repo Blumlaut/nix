@@ -541,6 +541,10 @@ input::placeholder { color: var(--placeholder); }
 .list .pair .verb { flex-shrink: 0; }
 /* avatar + name as one unit so they stay aligned inside .pair */
 .pair-user { display: inline-flex; align-items: center; gap: 5px; }
+/* Ranked pair rows: the avatar + name unit is the frame target (#11). The
+   always-present transparent border keeps framed and unframed badges the same
+   size, so a cosmetic only adds color — same layout trick as .feed-user. */
+.list .pair-user { min-width: 0; border: 2px solid transparent; border-radius: var(--radius-pill); padding: 2px 3px; }
 /* Ranked rows (components/RankedList.jsx) are ALWAYS center-aligned: with
    align-items: baseline an avatar's baseline (bottom of the image) shoves the
    text group down off the row's center. Issues #3 (user rows) and #9 (pair
@@ -976,7 +980,7 @@ main > :nth-child(6) { animation-delay: .25s; }
 /* The row hover tints the background — keep the rainbow fill in step with
    it (hover must use background-color, never the `background` shorthand,
    which would wipe the gradient). */
-.list li.border-rainbow:hover,.feed li:hover .border-rainbow{--cos-bg:var(--surface-2)}
+.list li.border-rainbow:hover,.list li.pair-row:hover .border-rainbow,.feed li:hover .border-rainbow{--cos-bg:var(--surface-2)}
 /* Give bordered list rows a little breathing room from the hairlines. The 2px
    border must replace padding (not add to it) so framed rows keep the same
    outer size AND the same content inset — otherwise their avatars/text sit 2px

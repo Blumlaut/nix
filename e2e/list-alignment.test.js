@@ -112,17 +112,21 @@ test('leaderboard rows keep left content aligned regardless of value width', wit
     );
 
     // Unlockable border cosmetics render on every ranked card, not just
-    // Top nixers: framed rows (user-row border-*) and pair name pills.
+    // Top nixers: framed rows (user-row border-*) and pair badges (the frame
+    // wraps avatar + name, #11).
     assert.strictEqual(await page.locator('#most-nixed li.user-row.border-gold').count(), 1,
       `most-nixed row should paint its unlocked border ${where}`);
     assert.strictEqual(await page.locator('#streaks li.user-row.border-gold').count(), 1,
       `streak row should paint its unlocked border ${where}`);
-    assert.strictEqual(await page.locator('.pair-row a.border-gold').count(), 3,
-      `pair name pills should paint unlocked borders ${where}`);
-    const pillColor = await page.locator('.pair-row a.border-gold').first()
+    assert.strictEqual(await page.locator('.pair-row .pair-user.border-gold').count(), 3,
+      `pair badges should paint unlocked borders ${where}`);
+    const badgeColor = await page.locator('.pair-row .pair-user.border-gold').first()
       .evaluate((el) => getComputedStyle(el).borderTopColor);
-    assert.notStrictEqual(pillColor, 'rgba(0, 0, 0, 0)',
-      `pair pill border must be painted, not just classed ${where}`);
+    assert.notStrictEqual(badgeColor, 'rgba(0, 0, 0, 0)',
+      `pair badge border must be painted, not just classed ${where}`);
+    // The avatar sits inside the frame.
+    assert.strictEqual(await page.locator('.pair-row .pair-user.border-gold .MuiAvatar-root').count(), 3,
+      `avatars should sit inside the pair border frame ${where}`);
 
     // Issues #3/#9: every row child (avatar, name, meta, value) must be
     // vertically centered within its row — in every card, not just Top pairs.
