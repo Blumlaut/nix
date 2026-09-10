@@ -48,7 +48,7 @@ function seed() {
 }
 
 test('achievements are seeded on startup', () => {
-  assert.equal(q.allAchievements.all().length, 25);
+  assert.equal(q.allAchievements.all().length, 42);
 });
 
 test('nix flow awards XP and achievements', () => {
@@ -166,8 +166,8 @@ test('profile achievements show the profiled user, not the viewer', () => {
   const bobAch = new Map(users.getProfile(bob.id, prog).achievements.map((a) => [a.key, a.unlocked]));
 
   // Full catalog for both users, each with their own unlock state.
-  assert.equal(aliceAch.size, 25);
-  assert.equal(bobAch.size, 25);
+  assert.equal(aliceAch.size, 42);
+  assert.equal(bobAch.size, 42);
   assert.equal(aliceAch.get('nix_10'), true, 'alice (25 given) has Getting Warm');
   assert.equal(aliceAch.get('nix_25'), true, 'alice (25 given) has Serial Nixer');
   assert.equal(bobAch.get('nix_10'), false, 'bob never nixed — his own state, not alice\'s');
@@ -210,6 +210,27 @@ test('extended nixpass tiers are reachable and grant their cosmetics', () => {
   assert.deepEqual(prog.claimBpTier(noah.id, 16), { ok: true });
   assert.equal(prog.getUserCosmetics(noah.id).border, 'emerald');
   assert.equal(prog.getUserCosmetics(noah.id).badge, 'mythic');
+  assert.equal(bp.maxLevel, 500);
+});
+
+test('levels cap at 500 and award milestone achievements across the ladder', () => {
+  const omar = freshUser('discord-omar', 'Omar');
+  assert.equal(prog.getUserXp(omar.id).level, 1);
+
+  // 800 XP → level 5, which unlocks the first milestone but not the next.
+  prog.awardXp(omar.id, 800);
+  let unlocked = prog.syncAchievements(omar.id);
+  assert.ok(unlocked.includes('lvl_5'), 'reaching level 5 unlocks First Steps');
+  assert.ok(!unlocked.includes('lvl_10'), 'level 5 is short of level 10');
+
+  // 500 levels need 99,800 XP; anything beyond stays pinned at the cap.
+  prog.awardXp(omar.id, 200 * 500);
+  const xp = prog.getUserXp(omar.id);
+  assert.equal(xp.level, 500, 'level cannot exceed the 500 cap');
+  assert.equal(xp.levelProgress, 1, 'a maxed level reads as complete');
+
+  unlocked = prog.syncAchievements(omar.id);
+  assert.ok(unlocked.includes('lvl_500'), 'reaching the cap unlocks Nix Deity');
 });
 
 test('battlepass is only included in the profile of the owner', () => {

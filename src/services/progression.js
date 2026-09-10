@@ -11,6 +11,12 @@ const XP_RECEIVED = 20;
 const XP_ACH = 100;
 const XP_DAILY = 10;
 const XP_PER_LEVEL = 200;
+const MAX_LEVEL = 500;
+
+// Level milestones spread across the whole 1-500 ladder: dense early on
+// where players actually spend their time, then wider spacing towards the
+// (very long-term) top. Unlocked in checkAchievements via `lvl_<n>` keys.
+const LEVEL_MILESTONES = [5, 10, 20, 30, 40, 50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 450, 500];
 
 // `xp` is a total-XP threshold; with 200 XP per level, tier N unlocks at
 // level N.
@@ -35,7 +41,7 @@ const BP_TIERS = [
 
 function createProgressionService(db, q) {
   function levelFromXp(xp) {
-    return Math.floor(xp / XP_PER_LEVEL) + 1;
+    return Math.min(Math.floor(xp / XP_PER_LEVEL) + 1, MAX_LEVEL);
   }
 
   // ── Nemesis ─────────────────────────────────────────────────────────────
@@ -58,10 +64,11 @@ function createProgressionService(db, q) {
       q.insertXp.run(userId);
       return { totalXp: 0, level: 1, levelProgress: 0 };
     }
+    const level = levelFromXp(row.total_xp);
     return {
       totalXp: row.total_xp,
-      level: levelFromXp(row.total_xp),
-      levelProgress: (row.total_xp % XP_PER_LEVEL) / XP_PER_LEVEL,
+      level,
+      levelProgress: level >= MAX_LEVEL ? 1 : (row.total_xp % XP_PER_LEVEL) / XP_PER_LEVEL,
     };
   }
 
@@ -138,6 +145,11 @@ function createProgressionService(db, q) {
       if (span >= 100 * 86400000) tryUnlock('veteran_100');
     }
 
+    const level = getUserXp(userId).level;
+    for (const milestone of LEVEL_MILESTONES) {
+      if (level >= milestone) tryUnlock(`lvl_${milestone}`);
+    }
+
     const total = q.countUserAch.get(userId).n;
     if (total >= 5) tryUnlock('collector');
     if (total >= 10) tryUnlock('collector_10');
@@ -172,6 +184,7 @@ function createProgressionService(db, q) {
       totalXp: xp.totalXp,
       level: xp.level,
       levelProgress: xp.levelProgress,
+      maxLevel: MAX_LEVEL,
       tiers,
       highestTier: highest ? highest.tier : 0,
       activeTitle: active.title,
@@ -265,9 +278,11 @@ function createProgressionService(db, q) {
 module.exports = {
   createProgressionService,
   BP_TIERS,
+  LEVEL_MILESTONES,
   XP_GIVEN,
   XP_RECEIVED,
   XP_ACH,
   XP_DAILY,
   XP_PER_LEVEL,
+  MAX_LEVEL,
 };

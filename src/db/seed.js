@@ -30,6 +30,23 @@ const ACHIEVEMENTS = [
   [23, 'rampage', 'Rampage', 'Nix 5 people in a single day', '🌪️', 'activity'],
   [24, 'collector_10', 'Archivist', 'Unlock 10 achievements', '🗃️', 'meta'],
   [25, 'veteran_100', 'Old Guard', 'Have nixes spanning 100+ days', '🗿', 'meta'],
+  [26, 'lvl_5', 'First Steps', 'Reach level 5', '🌱', 'level'],
+  [27, 'lvl_10', 'Regular', 'Reach level 10', '🥉', 'level'],
+  [28, 'lvl_20', 'Getting Serious', 'Reach level 20', '🥈', 'level'],
+  [29, 'lvl_30', 'Devoted', 'Reach level 30', '🥇', 'level'],
+  [30, 'lvl_40', 'Hardened', 'Reach level 40', '🎖️', 'level'],
+  [31, 'lvl_50', 'Half Century', 'Reach level 50', '🏅', 'level'],
+  [32, 'lvl_75', 'Seasoned', 'Reach level 75', '🍂', 'level'],
+  [33, 'lvl_100', 'Triple Digits', 'Reach level 100', '💯', 'level'],
+  [34, 'lvl_125', 'Relentless', 'Reach level 125', '♨️', 'level'],
+  [35, 'lvl_150', 'Elite', 'Reach level 150', '⚜️', 'level'],
+  [36, 'lvl_200', 'Double Century', 'Reach level 200', '🏵️', 'level'],
+  [37, 'lvl_250', 'Ascendant', 'Reach level 250', '✨', 'level'],
+  [38, 'lvl_300', 'Titan', 'Reach level 300', '🗡️', 'level'],
+  [39, 'lvl_350', 'Colossus', 'Reach level 350', '🏔️', 'level'],
+  [40, 'lvl_400', 'Mythical', 'Reach level 400', '🐉', 'level'],
+  [41, 'lvl_450', 'Transcendent', 'Reach level 450', '🌌', 'level'],
+  [42, 'lvl_500', 'Nix Deity', 'Reach the maximum level 500', '👑', 'level'],
 ];
 
 /**

@@ -281,7 +281,7 @@ function createApiRouter(deps) {
 
   router.post('/battlepass/claim/:tier', requireSession(true), (req, res) => {
     const tier = Number(req.params.tier);
-    if (!Number.isInteger(tier) || tier < 1 || tier > 10) {
+    if (!Number.isInteger(tier) || tier < 1) {
       return res.status(400).json({ error: 'invalid tier' });
     }
     const result = progression.claimBpTier(req.user.id, tier);

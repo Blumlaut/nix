@@ -153,14 +153,14 @@ function RecentActivity({ activity, uid, name }) {
 }
 
 function Nixpass({ bp, claimed, onClaim }) {
-  const maxTier = bp.tiers.length;
-  const pct = bp.level >= maxTier ? 100 : Math.round(bp.levelProgress * 100);
+  const maxLevel = bp.maxLevel || bp.tiers.length;
+  const pct = bp.level >= maxLevel ? 100 : Math.round(bp.levelProgress * 100);
   return (
     <section className="card prof-section">
       <h2>🎮 Nixpass</h2>
       <div className="bp-bar-wrap">
         <LinearProgress variant="determinate" value={pct} />
-        <span className="bp-bar-label">Level {bp.level} / {maxTier}</span>
+        <span className="bp-bar-label">Level {bp.level} / {maxLevel}</span>
       </div>
       <div className="bp-list">
         {bp.tiers.map((t) => {
