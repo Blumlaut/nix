@@ -20,6 +20,16 @@ const ACHIEVEMENTS = [
   [13, 'collector', 'Collector', 'Unlock 5 achievements', '🎒', 'meta'],
   [14, 'veteran', 'Veteran', 'Have nixes spanning 30+ days', '📅', 'meta'],
   [15, 'completionist', 'Completionist', 'Unlock every achievement', '🏆', 'meta'],
+  [16, 'nix_250', 'Unstoppable', 'Give 250 nixes', '🌋', 'nixing'],
+  [17, 'nix_500', 'Extinction Event', 'Give 500 nixes', '☄️', 'nixing'],
+  [18, 'received_50', 'Infamous', 'Get nixed 50 times', '🎯', 'receiving'],
+  [19, 'received_100', 'Living Target', 'Get nixed 100 times', '🩹', 'receiving'],
+  [20, 'unique_10', 'Networker', 'Nix 10 different users', '🕸️', 'social'],
+  [21, 'unique_25', 'Influencer', 'Nix 25 different users', '📣', 'social'],
+  [22, 'nemesis_5', 'Arch Nemesis', 'Get nixed 5+ times by the same user', '☠️', 'nemesis'],
+  [23, 'rampage', 'Rampage', 'Nix 5 people in a single day', '🌪️', 'activity'],
+  [24, 'collector_10', 'Archivist', 'Unlock 10 achievements', '🗃️', 'meta'],
+  [25, 'veteran_100', 'Old Guard', 'Have nixes spanning 100+ days', '🗿', 'meta'],
 ];
 
 /**

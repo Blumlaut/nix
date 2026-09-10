@@ -74,6 +74,8 @@
   --cos-blue: #4a9eff;
   --cos-purple: #a855f7;
   --cos-gold: #fbbf24;
+  --cos-emerald: #10b981;
+  --cos-platinum: #8fa3c8;
   --rainbow: linear-gradient(90deg, #ff6b6b, #fbbf24, #51cf66, #4a9eff, #a855f7);
 
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -985,6 +987,8 @@ main > :nth-child(6) { animation-delay: .25s; }
 .border-blue{border:2px solid var(--cos-blue)!important}
 .border-purple{border:2px solid var(--cos-purple)!important}
 .border-gold{border:2px solid var(--cos-gold)!important}
+.border-emerald{border:2px solid var(--cos-emerald)!important}
+.border-platinum{border:2px solid var(--cos-platinum)!important}
 .border-rainbow{--cos-bg:var(--surface);border:2px solid transparent!important;background-image:linear-gradient(var(--cos-bg),var(--cos-bg)),var(--rainbow);background-origin:border-box;background-clip:padding-box,border-box}
 /* The row hover tints the background — keep the rainbow fill in step with
    it (hover must use background-color, never the `background` shorthand,
@@ -994,7 +998,7 @@ main > :nth-child(6) { animation-delay: .25s; }
    border must replace padding (not add to it) so framed rows keep the same
    outer size AND the same content inset — otherwise their avatars/text sit 2px
    right of every other row (same alignment-bug family as #3/#9). */
-.list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-rainbow{margin:5px -8px;padding:7px 6px}
+.list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-emerald,.list li.border-platinum,.list li.border-rainbow{margin:5px -8px;padding:7px 6px}
 
 /* Username pill in nix feeds. The always-present transparent border keeps
    the layout identical for users without a border; a border cosmetic then
@@ -1014,6 +1018,8 @@ main > :nth-child(6) { animation-delay: .25s; }
 .cos-dot.blue{background:var(--cos-blue)}
 .cos-dot.purple{background:var(--cos-purple)}
 .cos-dot.gold{background:var(--cos-gold)}
+.cos-dot.emerald{background:var(--cos-emerald)}
+.cos-dot.platinum{background:var(--cos-platinum)}
 .cos-dot.rainbow{background:var(--rainbow)}
 
 /* Nixpass title */

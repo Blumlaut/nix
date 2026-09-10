@@ -68,6 +68,9 @@ function prepareAll(db) {
     userFirstNix: db.prepare('SELECT MIN(created_at) AS d FROM nixes WHERE nixer_id = ? OR nixed_id = ?'),
     userLastNix: db.prepare('SELECT MAX(created_at) AS d FROM nixes WHERE nixer_id = ? OR nixed_id = ?'),
     userUniqueTargets: db.prepare('SELECT COUNT(DISTINCT nixed_id) AS n FROM nixes WHERE nixer_id = ?'),
+    userMaxPerDay: db.prepare(`
+      SELECT COUNT(*) AS n FROM nixes WHERE nixer_id = ?
+      GROUP BY date(created_at) ORDER BY n DESC LIMIT 1`),
     userTopTargets: db.prepare(`
       SELECT b.id AS uid, b.name AS name, COUNT(*) AS n
       FROM nixes nx JOIN users b ON b.id = nx.nixed_id

@@ -5,6 +5,9 @@ import { api } from '../api';
 import { timeAgo } from '../util';
 import UserAvatar from '../components/UserAvatar';
 
+// Badge cosmetic value → shown emoji. Keep in step with BP_TIERS badges.
+const BADGE_ICONS = { legend: '🏆', mythic: '💎' };
+
 export default function Profile() {
   const { id } = useParams();
   const [p, setP] = useState(null);
@@ -37,7 +40,7 @@ export default function Profile() {
             <h1 className="prof-name">
               {p.user.name}
               {cos.title && <span className="bp-title-display">{cos.title}</span>}
-              {cos.badge === 'legend' && <span className="legend-badge">🏆</span>}
+              {BADGE_ICONS[cos.badge] && <span className="legend-badge">{BADGE_ICONS[cos.badge]}</span>}
             </h1>
             <div className="prof-sub">
               Lvl {p.xp.level} · {p.xp.totalXp} XP · Member since {p.user.created_at ? p.user.created_at.slice(0, 10) : '—'}
@@ -163,7 +166,7 @@ function Nixpass({ bp, claimed, onClaim }) {
         {bp.tiers.map((t) => {
           const isClaimed = t.claimed || claimed[t.tier];
           const st = isClaimed ? 'bp-claimed' : t.unlocked ? 'bp-unlocked' : 'bp-locked';
-          const icon = t.reward === 'title' ? '✦' : t.reward === 'border' ? '▐' : '🏆';
+          const icon = t.reward === 'title' ? '✦' : t.reward === 'border' ? '▐' : (BADGE_ICONS[t.value] || '🏆');
           return (
             <div className={`bp-item ${st}`} key={t.tier}>
               <span className="bp-item-num">{t.tier}</span>

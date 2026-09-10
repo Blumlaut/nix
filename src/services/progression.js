@@ -25,6 +25,12 @@ const BP_TIERS = [
   { tier: 8, name: 'Rainbow Border', xp: 1400, reward: 'border', value: 'rainbow' },
   { tier: 9, name: 'Nix Grandmaster', xp: 1600, reward: 'title', value: 'Nix Grandmaster' },
   { tier: 10, name: 'Nix Legend', xp: 1800, reward: 'badge', value: 'legend' },
+  { tier: 11, name: 'Nix Overlord', xp: 2000, reward: 'title', value: 'Nix Overlord' },
+  { tier: 12, name: 'Emerald Border', xp: 2200, reward: 'border', value: 'emerald' },
+  { tier: 13, name: 'Nix Sovereign', xp: 2400, reward: 'title', value: 'Nix Sovereign' },
+  { tier: 14, name: 'Platinum Border', xp: 2600, reward: 'border', value: 'platinum' },
+  { tier: 15, name: 'Nix Immortal', xp: 2800, reward: 'title', value: 'Nix Immortal' },
+  { tier: 16, name: 'Nix Mythic', xp: 3000, reward: 'badge', value: 'mythic' },
 ];
 
 function createProgressionService(db, q) {
@@ -101,13 +107,23 @@ function createProgressionService(db, q) {
     if (given >= 25) tryUnlock('nix_25');
     if (given >= 50) tryUnlock('nix_50');
     if (given >= 100) tryUnlock('nix_100');
+    if (given >= 250) tryUnlock('nix_250');
+    if (given >= 500) tryUnlock('nix_500');
     if (received >= 1) tryUnlock('first_received');
     if (received >= 10) tryUnlock('received_10');
     if (received >= 25) tryUnlock('received_25');
+    if (received >= 50) tryUnlock('received_50');
+    if (received >= 100) tryUnlock('received_100');
     if (uniqueNixed >= 5) tryUnlock('social_butterfly');
+    if (uniqueNixed >= 10) tryUnlock('unique_10');
+    if (uniqueNixed >= 25) tryUnlock('unique_25');
+
+    const busiestDay = q.userMaxPerDay.get(userId);
+    if (busiestDay && busiestDay.n >= 5) tryUnlock('rampage');
 
     const nem = getNemesis(userId);
     if (nem && nem.timesNixedYou >= 3) tryUnlock('nemesis');
+    if (nem && nem.timesNixedYou >= 5) tryUnlock('nemesis_5');
 
     const top = q.topNixedUser.get();
     if (top && top.nixed_id === userId && received >= 2) tryUnlock('top_dog');
@@ -117,11 +133,14 @@ function createProgressionService(db, q) {
     if (first && last) {
       const d1 = new Date(`${first.replace(' ', 'T')}Z`);
       const d2 = new Date(`${last.replace(' ', 'T')}Z`);
-      if (d2 - d1 >= 30 * 86400000) tryUnlock('veteran');
+      const span = d2 - d1;
+      if (span >= 30 * 86400000) tryUnlock('veteran');
+      if (span >= 100 * 86400000) tryUnlock('veteran_100');
     }
 
     const total = q.countUserAch.get(userId).n;
     if (total >= 5) tryUnlock('collector');
+    if (total >= 10) tryUnlock('collector_10');
     if (total >= q.countAllAch.get().n) tryUnlock('completionist');
 
     return unlocked;

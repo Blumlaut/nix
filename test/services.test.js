@@ -48,7 +48,7 @@ function seed() {
 }
 
 test('achievements are seeded on startup', () => {
-  assert.equal(q.allAchievements.all().length, 15);
+  assert.equal(q.allAchievements.all().length, 25);
 });
 
 test('nix flow awards XP and achievements', () => {
@@ -166,13 +166,50 @@ test('profile achievements show the profiled user, not the viewer', () => {
   const bobAch = new Map(users.getProfile(bob.id, prog).achievements.map((a) => [a.key, a.unlocked]));
 
   // Full catalog for both users, each with their own unlock state.
-  assert.equal(aliceAch.size, 15);
-  assert.equal(bobAch.size, 15);
+  assert.equal(aliceAch.size, 25);
+  assert.equal(bobAch.size, 25);
   assert.equal(aliceAch.get('nix_10'), true, 'alice (25 given) has Getting Warm');
   assert.equal(aliceAch.get('nix_25'), true, 'alice (25 given) has Serial Nixer');
   assert.equal(bobAch.get('nix_10'), false, 'bob never nixed — his own state, not alice\'s');
   assert.equal(bobAch.get('nix_25'), false);
   assert.equal(bobAch.get('first_received'), true);
+});
+
+test('extended achievement thresholds unlock at their milestones', () => {
+  const hana = freshUser('discord-hana', 'Hana');
+  const victims = ['ida', 'jack', 'kim', 'leo', 'mia'].map((n) => freshUser(`discord-${n}`, n));
+
+  // 5 nixes spread over 5 different targets inside one day → rampage +
+  // networker is not enough (only 5 unique).
+  for (const v of victims) q.insertNix.run(hana.id, v.id);
+  let unlocked = prog.syncAchievements(hana.id);
+  assert.ok(unlocked.includes('social_butterfly'));
+  assert.ok(unlocked.includes('rampage'), '5 nixes in one day');
+  assert.ok(!unlocked.includes('unique_10'), 'only 5 unique targets');
+
+  // Same target repeatedly: counts toward the nixing ladder but not unique.
+  for (let i = 0; i < 250; i++) q.insertNix.run(hana.id, victims[0].id);
+  unlocked = prog.syncAchievements(hana.id);
+  assert.ok(unlocked.includes('nix_100'));
+  assert.ok(unlocked.includes('nix_250'));
+  assert.ok(!unlocked.includes('nix_500'));
+});
+
+test('extended nixpass tiers are reachable and grant their cosmetics', () => {
+  const noah = freshUser('discord-noah', 'Noah');
+  const last = prog.getBattlepass(noah.id).tiers.at(-1);
+  assert.equal(last.tier, 16);
+  assert.equal(last.reward, 'badge');
+
+  prog.awardXp(noah.id, 3000); // level 16
+  const bp = prog.getBattlepass(noah.id);
+  assert.ok(bp.tiers.every((t) => t.unlocked), 'all tiers unlocked at 3000 XP');
+  assert.equal(bp.highestTier, 16);
+
+  assert.deepEqual(prog.claimBpTier(noah.id, 12), { ok: true });
+  assert.deepEqual(prog.claimBpTier(noah.id, 16), { ok: true });
+  assert.equal(prog.getUserCosmetics(noah.id).border, 'emerald');
+  assert.equal(prog.getUserCosmetics(noah.id).badge, 'mythic');
 });
 
 test('battlepass is only included in the profile of the owner', () => {
