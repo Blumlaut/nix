@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { timeAgo, fmtLocal } from '../util';
+import { timeAgo, fmtLocal, kdRatio } from '../util';
 import {
   Alert,
   Box,
@@ -162,7 +162,7 @@ export default function Board() {
 
       <div className="card" id="net-balance">
         <h2>Net Nix Balance</h2>
-        <p className="muted">Nixes given − nixes received, highest net first.</p>
+        <p className="muted">Nixes given − nixes received, highest net first. K/D is nixes given ÷ received.</p>
         <RankedList rows={board.netLeaderboard || []} empty="No users yet." row={(r) => (
           <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar} border={r.border}>
             <span className="user-nixes">
@@ -173,6 +173,8 @@ export default function Board() {
               <span className={`nix-net${r.net > 0 ? ' positive' : r.net < 0 ? ' negative' : ''}`}>
                 {r.net > 0 ? `+${r.net}` : r.net}
               </span>
+              <span className="nix-sep">·</span>
+              <span className="nix-kd" title="K/D ratio — nixes given ÷ nixes received">K/D {kdRatio(r.given, r.received)}</span>
             </span>
           </UserListRow>
         )} />

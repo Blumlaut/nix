@@ -54,7 +54,10 @@ async function mockAuth(page) {
     ],
     mostNixed: [{ uid: '1', name: 'TestUser', n: 4, border: null }],
     netLeaderboard: [
-      { uid: '2', name: 'Florian', avatar: null, given: 4, received: 3, net: 1, border: null },
+      { uid: '5', name: 'Zoe', avatar: null, given: 7, received: 3, net: 4, border: null },
+      { uid: '3', name: 'Nadia', avatar: null, given: 3, received: 0, net: 3, border: null },
+      { uid: '2', name: 'Florian', avatar: null, given: 4, received: 2, net: 2, border: null },
+      { uid: '4', name: 'Robin', avatar: null, given: 0, received: 0, net: 0, border: null },
       { uid: '1', name: 'TestUser', avatar: null, given: 3, received: 4, net: -1, border: null },
     ],
     topPairs: [],

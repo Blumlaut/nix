@@ -10,6 +10,15 @@ export function timeAgo(isoUtc) {
   return `${Math.floor(s / (365 * 86400))}y ago`;
 }
 
+/**
+ * K/D for the net balance board: "kills" (nixes given) over "deaths" (nixes
+ * received). No deaths yet → ∞ (infinite K/D); no nixes at all → —.
+ */
+export function kdRatio(given, received) {
+  if (!received) return given ? '∞' : '—';
+  return String(Number((given / received).toFixed(2)));
+}
+
 export function fmtLocal(isoUtc) {
   const t = Date.parse(isoUtc.replace(' ', 'T') + 'Z');
   return new Date(t).toLocaleString();
