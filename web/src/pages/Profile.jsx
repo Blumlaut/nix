@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, LinearProgress } from '@mui/material';
 import { api } from '../api';
@@ -7,6 +7,9 @@ import UserAvatar from '../components/UserAvatar';
 
 // Badge cosmetic value → shown emoji. Keep in step with BP_TIERS badges.
 const BADGE_ICONS = { legend: '🏆', mythic: '💎' };
+
+// XP runs into six digits, so every XP number is grouped the same way.
+const xp = (n) => Number(n).toLocaleString('en-US');
 
 export default function Profile() {
   const { id } = useParams();
@@ -43,7 +46,7 @@ export default function Profile() {
               {BADGE_ICONS[cos.badge] && <span className="legend-badge">{BADGE_ICONS[cos.badge]}</span>}
             </h1>
             <div className="prof-sub">
-              Lvl {p.xp.level} · {p.xp.totalXp} XP · Member since {p.user.created_at ? p.user.created_at.slice(0, 10) : '—'}
+              Lvl {p.xp.level} / {p.xp.maxLevel} · {xp(p.xp.totalXp)} XP · Member since {p.user.created_at ? p.user.created_at.slice(0, 10) : '—'}
             </div>
           </div>
         </div>
@@ -72,7 +75,7 @@ export default function Profile() {
 
         <div className="prof-col prof-col-r">
           {p.battlepass?.tiers && (
-            <Nixpass bp={p.battlepass} claimed={claimed} onClaim={(tier) => {
+            <Nixpass bp={p.battlepass} achievements={p.achievements} claimed={claimed} onClaim={(tier) => {
               api(`/api/battlepass/claim/${tier}`, { method: 'POST' }).then((r) => {
                 if (r && r.status < 400) {
                   setClaimed((c) => ({ ...c, [tier]: true }));
@@ -152,32 +155,79 @@ function RecentActivity({ activity, uid, name }) {
   );
 }
 
-function Nixpass({ bp, claimed, onClaim }) {
+function Nixpass({ bp, achievements, claimed, onClaim }) {
   const maxLevel = bp.maxLevel || bp.tiers.length;
+  const xpPerLevel = bp.xpPerLevel || 200;
   const pct = bp.level >= maxLevel ? 100 : Math.round(bp.levelProgress * 100);
+  // Tiers and level-milestone achievements are both keyed by the level they
+  // unlock at, so one ladder row can show either (or both).
+  const tierByLevel = new Map(bp.tiers.map((t) => [Math.round(t.xp / xpPerLevel) + 1, t]));
+  const milestoneByLevel = new Map(
+    (achievements || [])
+      .filter((a) => a.key.startsWith('lvl_'))
+      .map((a) => [Number(a.key.slice(4)), a])
+  );
+  const scroller = useRef(null);
+  const currentRow = useRef(null);
+
+  // The ladder spans all 500 levels: open it at the player's own level so
+  // their progress is what they see first.
+  useEffect(() => {
+    const box = scroller.current;
+    const row = currentRow.current;
+    if (!box || !row) return;
+    box.scrollTop = Math.max(0, row.offsetTop - (box.clientHeight - row.offsetHeight) / 2);
+  }, [bp.level]);
+
+  const levels = Array.from({ length: maxLevel }, (_, i) => i + 1);
+
   return (
     <section className="card prof-section">
-      <h2>🎮 Nixpass</h2>
+      <h2>
+        🎮 Nixpass
+        <span className="bp-xp-total">{xp(bp.totalXp)} XP</span>
+      </h2>
       <div className="bp-bar-wrap">
         <LinearProgress variant="determinate" value={pct} />
-        <span className="bp-bar-label">Level {bp.level} / {maxLevel}</span>
+        <span className="bp-bar-label">
+          Level {bp.level} / {maxLevel} ·{' '}
+          {bp.level >= maxLevel ? 'max level reached' : `${xp(bp.levelXp)} / ${xp(xpPerLevel)} XP to level ${bp.level + 1}`}
+        </span>
       </div>
-      <div className="bp-list">
-        {bp.tiers.map((t) => {
-          const isClaimed = t.claimed || claimed[t.tier];
-          const st = isClaimed ? 'bp-claimed' : t.unlocked ? 'bp-unlocked' : 'bp-locked';
-          const icon = t.reward === 'title' ? '✦' : t.reward === 'border' ? '▐' : (BADGE_ICONS[t.value] || '🏆');
-          return (
-            <div className={`bp-item ${st}`} key={t.tier}>
-              <span className="bp-item-num">{t.tier}</span>
-              <span className="bp-item-name">{t.name}</span>
-              <span className="bp-item-reward">{icon} {t.value}</span>
-              {t.unlocked && !isClaimed
-                ? <Button className="bp-claim" variant="contained" size="small" onClick={() => onClaim(t.tier)}>Claim</Button>
-                : isClaimed ? <span className="bp-check">✓</span> : null}
-            </div>
-          );
-        })}
+      <div className="bp-scroll" ref={scroller} tabIndex={0} role="region" aria-label="Level overview">
+        <div className="bp-list">
+          {levels.map((l) => {
+            const tier = tierByLevel.get(l);
+            const ach = milestoneByLevel.get(l);
+            const isClaimed = Boolean(tier && (tier.claimed || claimed[tier.tier]));
+            const reached = l <= bp.level;
+            const st = !reached ? 'bp-locked' : isClaimed ? 'bp-claimed' : tier ? 'bp-unlocked' : 'bp-reached';
+            const threshold = `${xp((l - 1) * xpPerLevel)} XP`;
+            return (
+              <div
+                className={`bp-item ${st}${l === bp.level ? ' bp-current' : ''}`}
+                key={l}
+                ref={l === bp.level ? currentRow : null}
+                aria-label={`Level ${l}: ${threshold}${tier ? `, ${tier.name}` : ''}${ach ? `, ${ach.name}` : ''}`}
+              >
+                <span className="bp-item-num">{l}</span>
+                <span className="bp-item-name">{tier ? tier.name : ''}</span>
+                {ach && (
+                  <span className="bp-item-ach" title={`${ach.name}: ${ach.description}`}>
+                    <span className="bp-item-ach-ic">{ach.icon}</span>
+                    <span className="bp-item-ach-nm">{ach.name}</span>
+                  </span>
+                )}
+                <span className="bp-item-reward">{threshold}</span>
+                <span className="bp-item-state">
+                  {tier && tier.unlocked && !isClaimed
+                    ? <Button className="bp-claim" variant="contained" size="small" onClick={() => onClaim(tier.tier)}>Claim</Button>
+                    : isClaimed ? <span className="bp-check">✓</span> : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -226,13 +276,15 @@ function Achievements({ achievements: ach }) {
   return (
     <>
       <span className="ach-count">({unlocked}/{ach.length})</span>
-      <div className="ach-grid">
-        {ach.map((a) => (
-          <div className={`ach ${a.unlocked ? 'ach-on' : 'ach-off'}`} key={a.key} title={`${a.name}: ${a.description}`}>
-            <span className="ach-ic">{a.icon}</span>
-            <span className="ach-nm">{a.name}</span>
-          </div>
-        ))}
+      <div className="ach-scroll">
+        <div className="ach-grid">
+          {ach.map((a) => (
+            <div className={`ach ${a.unlocked ? 'ach-on' : 'ach-off'}`} key={a.key} title={`${a.name}: ${a.description}`}>
+              <span className="ach-ic">{a.icon}</span>
+              <span className="ach-nm">{a.name}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

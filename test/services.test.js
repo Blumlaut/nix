@@ -48,7 +48,7 @@ function seed() {
 }
 
 test('achievements are seeded on startup', () => {
-  assert.equal(q.allAchievements.all().length, 42);
+  assert.equal(q.allAchievements.all().length, 69);
 });
 
 test('nix flow awards XP and achievements', () => {
@@ -166,8 +166,8 @@ test('profile achievements show the profiled user, not the viewer', () => {
   const bobAch = new Map(users.getProfile(bob.id, prog).achievements.map((a) => [a.key, a.unlocked]));
 
   // Full catalog for both users, each with their own unlock state.
-  assert.equal(aliceAch.size, 42);
-  assert.equal(bobAch.size, 42);
+  assert.equal(aliceAch.size, 69);
+  assert.equal(bobAch.size, 69);
   assert.equal(aliceAch.get('nix_10'), true, 'alice (25 given) has Getting Warm');
   assert.equal(aliceAch.get('nix_25'), true, 'alice (25 given) has Serial Nixer');
   assert.equal(bobAch.get('nix_10'), false, 'bob never nixed — his own state, not alice\'s');
@@ -185,6 +185,8 @@ test('extended achievement thresholds unlock at their milestones', () => {
   let unlocked = prog.syncAchievements(hana.id);
   assert.ok(unlocked.includes('social_butterfly'));
   assert.ok(unlocked.includes('rampage'), '5 nixes in one day');
+  assert.ok(unlocked.includes('hat_trick'), '3 nixes in one day');
+  assert.ok(!unlocked.includes('bloodbath'), 'only 5 nixes in one day');
   assert.ok(!unlocked.includes('unique_10'), 'only 5 unique targets');
 
   // Same target repeatedly: counts toward the nixing ladder but not unique.
@@ -193,6 +195,8 @@ test('extended achievement thresholds unlock at their milestones', () => {
   assert.ok(unlocked.includes('nix_100'));
   assert.ok(unlocked.includes('nix_250'));
   assert.ok(!unlocked.includes('nix_500'));
+  assert.ok(unlocked.includes('duo_25'), '250 nixes on the same target');
+  assert.ok(unlocked.includes('duo_50'));
 });
 
 test('extended nixpass tiers are reachable and grant their cosmetics', () => {
@@ -231,6 +235,63 @@ test('levels cap at 500 and award milestone achievements across the ladder', () 
 
   unlocked = prog.syncAchievements(omar.id);
   assert.ok(unlocked.includes('lvl_500'), 'reaching the cap unlocks Nix Deity');
+  // The same pass crosses the meta thresholds the milestones push it over.
+  assert.ok(unlocked.includes('collector_25'), '26 unlocks crosses the 25 threshold');
+  assert.ok(!unlocked.includes('collector_50'));
+});
+
+test('volume achievements extend the given and received ladders', () => {
+  const otto = freshUser('discord-otto', 'Otto');
+  const pete = freshUser('discord-pete', 'Pete');
+  for (let i = 0; i < 1000; i++) q.insertNix.run(otto.id, pete.id);
+
+  const given = prog.syncAchievements(otto.id);
+  assert.ok(given.includes('nix_750'));
+  assert.ok(given.includes('nix_1000'));
+
+  const received = prog.syncAchievements(pete.id);
+  assert.ok(received.includes('received_250'));
+  assert.ok(received.includes('received_500'));
+});
+
+test('nix-day achievements cover distinct and consecutive days', () => {
+  const nora = freshUser('discord-nora', 'Nora');
+  const vic = freshUser('discord-vic', 'Vic');
+  const backdate = db.prepare('INSERT INTO nixes (nixer_id, nixed_id, created_at) VALUES (?, ?, datetime(\'now\', ?))');
+  const addDay = (offset) => backdate.run(nora.id, vic.id, `-${offset} days`);
+
+  for (let d = 5; d >= 0; d--) addDay(d); // 6 days in a row
+  let unlocked = prog.syncAchievements(nora.id);
+  assert.ok(!unlocked.includes('week_7'), '6 days in a row is short of a week');
+  assert.ok(!unlocked.includes('days_10'), '6 distinct days is short of 10');
+
+  addDay(6); // 7 in a row
+  unlocked = prog.syncAchievements(nora.id);
+  assert.ok(unlocked.includes('week_7'), 'a full week in a row');
+
+  for (const d of [30, 31, 32]) addDay(d); // 10 distinct days, longest run still 7
+  unlocked = prog.syncAchievements(nora.id);
+  assert.ok(unlocked.includes('days_10'), '10 distinct days');
+  assert.ok(!unlocked.includes('days_50'), 'only 10 distinct days');
+});
+
+test('nixpass claim and cosmetic achievements track the collection', () => {
+  const quin = freshUser('discord-quin', 'Quin');
+  prog.awardXp(quin.id, 3000); // level 16 → every tier claimable
+
+  for (const tier of [1, 2, 3, 4]) assert.deepEqual(prog.claimBpTier(quin.id, tier), { ok: true });
+  let unlocked = prog.syncAchievements(quin.id);
+  assert.ok(!unlocked.includes('claim_5'), '4 claims is short of 5');
+
+  assert.deepEqual(prog.claimBpTier(quin.id, 5), { ok: true });
+  unlocked = prog.syncAchievements(quin.id);
+  assert.ok(unlocked.includes('claim_5'), '5 claims');
+  assert.ok(!unlocked.includes('claim_all'), '11 tiers are still unclaimed');
+
+  for (let tier = 6; tier <= 16; tier++) prog.claimBpTier(quin.id, tier);
+  unlocked = prog.syncAchievements(quin.id);
+  assert.ok(unlocked.includes('claim_all'), 'every tier claimed');
+  assert.ok(unlocked.includes('cosmetics_all'), 'title, border and badge are all granted');
 });
 
 test('battlepass is only included in the profile of the owner', () => {

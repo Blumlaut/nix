@@ -305,6 +305,9 @@ function createApiRouter(deps) {
     const userId = Number(req.params.id);
     if (!Number.isInteger(userId) || userId <= 0) return res.status(404).json({ error: 'not found' });
     const isMe = Boolean(req.isAuthenticated() && req.user.id === userId);
+    // Unknown ids must 404 before the sync runs — it would otherwise insert
+    // XP/achievement rows for a user that does not exist.
+    if (!queries.userById.get(userId)) return res.status(404).json({ error: 'user not found' });
     // Retroactive unlock: achievements for nixes made before the
     // achievements system (or since the last check) are applied here, so
     // the profile that is displayed is always current.

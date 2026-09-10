@@ -32,6 +32,11 @@ function createApp(config) {
   const users = createUsersService(db, queries);
   const push = createPush(queries, dataDir);
 
+  // Nixes made before an achievement existed never ran a check, so a user's
+  // achievement XP (and the level derived from it) could differ between the
+  // board, the header and their profile. One pass at boot keeps them in step.
+  progression.syncAchievementsForAll();
+
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');

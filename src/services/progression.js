@@ -16,7 +16,24 @@ const MAX_LEVEL = 500;
 // Level milestones spread across the whole 1-500 ladder: dense early on
 // where players actually spend their time, then wider spacing towards the
 // (very long-term) top. Unlocked in checkAchievements via `lvl_<n>` keys.
-const LEVEL_MILESTONES = [5, 10, 20, 30, 40, 50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 450, 500];
+const LEVEL_MILESTONES = [
+  5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275,
+  300, 325, 350, 375, 400, 425, 450, 475, 500,
+];
+
+/** Longest run of consecutive calendar days (input: sorted `YYYY-MM-DD`). */
+function longestDayRun(days) {
+  let best = 0;
+  let run = 0;
+  let prev = null;
+  for (const d of days) {
+    const t = Date.parse(`${d}T00:00:00Z`);
+    run = prev !== null && t - prev === 86400000 ? run + 1 : 1;
+    prev = t;
+    if (run > best) best = run;
+  }
+  return best;
+}
 
 // `xp` is a total-XP threshold; with 200 XP per level, tier N unlocks at
 // level N.
@@ -62,13 +79,26 @@ function createProgressionService(db, q) {
     const row = q.xpByUser.get(userId);
     if (!row) {
       q.insertXp.run(userId);
-      return { totalXp: 0, level: 1, levelProgress: 0 };
+      return {
+        totalXp: 0,
+        level: 1,
+        levelXp: 0,
+        xpPerLevel: XP_PER_LEVEL,
+        maxLevel: MAX_LEVEL,
+        levelProgress: 0,
+      };
     }
     const level = levelFromXp(row.total_xp);
+    // XP inside the current level — every other XP display is derived from
+    // it, so total XP, level and the progress bar can never disagree.
+    const levelXp = level >= MAX_LEVEL ? XP_PER_LEVEL : row.total_xp % XP_PER_LEVEL;
     return {
       totalXp: row.total_xp,
       level,
-      levelProgress: level >= MAX_LEVEL ? 1 : (row.total_xp % XP_PER_LEVEL) / XP_PER_LEVEL,
+      levelXp,
+      xpPerLevel: XP_PER_LEVEL,
+      maxLevel: MAX_LEVEL,
+      levelProgress: level >= MAX_LEVEL ? 1 : levelXp / XP_PER_LEVEL,
     };
   }
 
@@ -116,21 +146,39 @@ function createProgressionService(db, q) {
     if (given >= 100) tryUnlock('nix_100');
     if (given >= 250) tryUnlock('nix_250');
     if (given >= 500) tryUnlock('nix_500');
+    if (given >= 750) tryUnlock('nix_750');
+    if (given >= 1000) tryUnlock('nix_1000');
     if (received >= 1) tryUnlock('first_received');
     if (received >= 10) tryUnlock('received_10');
     if (received >= 25) tryUnlock('received_25');
     if (received >= 50) tryUnlock('received_50');
     if (received >= 100) tryUnlock('received_100');
+    if (received >= 250) tryUnlock('received_250');
+    if (received >= 500) tryUnlock('received_500');
     if (uniqueNixed >= 5) tryUnlock('social_butterfly');
     if (uniqueNixed >= 10) tryUnlock('unique_10');
     if (uniqueNixed >= 25) tryUnlock('unique_25');
 
-    const busiestDay = q.userMaxPerDay.get(userId);
-    if (busiestDay && busiestDay.n >= 5) tryUnlock('rampage');
+    const busiest = q.userMaxPerDay.get(userId)?.n || 0;
+    if (busiest >= 3) tryUnlock('hat_trick');
+    if (busiest >= 5) tryUnlock('rampage');
+    if (busiest >= 10) tryUnlock('bloodbath');
+
+    // Nixing days (distinct days + the longest consecutive run through them).
+    const days = q.userNixDays.all(userId).map((r) => r.d);
+    if (days.length >= 10) tryUnlock('days_10');
+    if (days.length >= 50) tryUnlock('days_50');
+    if (days.length >= 100) tryUnlock('days_100');
+    if (longestDayRun(days) >= 7) tryUnlock('week_7');
+
+    const favorite = q.userMaxPerTarget.get(userId);
+    if (favorite && favorite.n >= 25) tryUnlock('duo_25');
+    if (favorite && favorite.n >= 50) tryUnlock('duo_50');
 
     const nem = getNemesis(userId);
     if (nem && nem.timesNixedYou >= 3) tryUnlock('nemesis');
     if (nem && nem.timesNixedYou >= 5) tryUnlock('nemesis_5');
+    if (nem && nem.revenge >= 10) tryUnlock('revenge_10');
 
     const top = q.topNixedUser.get();
     if (top && top.nixed_id === userId && received >= 2) tryUnlock('top_dog');
@@ -150,9 +198,22 @@ function createProgressionService(db, q) {
       if (level >= milestone) tryUnlock(`lvl_${milestone}`);
     }
 
+    const claims = q.bpClaimCount.get(userId).n;
+    if (claims >= 5) tryUnlock('claim_5');
+    if (claims >= BP_TIERS.length) tryUnlock('claim_all');
+
+    // Effective cosmetics (explicit choice, otherwise the highest claimed
+    // tier per category) — claiming the tiers is enough to wear a full set.
+    const cos = getUserCosmetics(userId);
+    if (cos.title && cos.border && cos.badge) tryUnlock('cosmetics_all');
+
+    // The count query sees everything unlocked above (each insert commits),
+    // so meta achievements that this pass reaches unlock with it.
     const total = q.countUserAch.get(userId).n;
     if (total >= 5) tryUnlock('collector');
     if (total >= 10) tryUnlock('collector_10');
+    if (total >= 25) tryUnlock('collector_25');
+    if (total >= 50) tryUnlock('collector_50');
     if (total >= q.countAllAch.get().n) tryUnlock('completionist');
 
     return unlocked;
@@ -166,6 +227,19 @@ function createProgressionService(db, q) {
   function syncAchievements(userId) {
     const unlocked = checkAchievements(userId);
     if (unlocked.length) awardXp(userId, unlocked.length * XP_ACH);
+    return unlocked;
+  }
+
+  /**
+   * Run the retroactive pass for every user once at boot. Nixes made before
+   * an achievement (or before a whole achievement batch) existed never ran a
+   * check, so the achievement XP — and with it the level shown on the board,
+   * in the header and on a profile — could differ per view until each user
+   * happened to open their own profile page.
+   */
+  function syncAchievementsForAll() {
+    let unlocked = 0;
+    for (const u of q.allUsers.all()) unlocked += syncAchievements(u.id).length;
     return unlocked;
   }
 
@@ -184,6 +258,8 @@ function createProgressionService(db, q) {
       totalXp: xp.totalXp,
       level: xp.level,
       levelProgress: xp.levelProgress,
+      levelXp: xp.levelXp,
+      xpPerLevel: XP_PER_LEVEL,
       maxLevel: MAX_LEVEL,
       tiers,
       highestTier: highest ? highest.tier : 0,
@@ -266,6 +342,7 @@ function createProgressionService(db, q) {
     awardNixXp,
     checkAchievements,
     syncAchievements,
+    syncAchievementsForAll,
     unlockAch,
     getBattlepass,
     getUserCosmetics,

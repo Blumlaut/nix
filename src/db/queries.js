@@ -71,6 +71,12 @@ function prepareAll(db) {
     userMaxPerDay: db.prepare(`
       SELECT COUNT(*) AS n FROM nixes WHERE nixer_id = ?
       GROUP BY date(created_at) ORDER BY n DESC LIMIT 1`),
+    userMaxPerTarget: db.prepare(`
+      SELECT COUNT(*) AS n FROM nixes WHERE nixer_id = ?
+      GROUP BY nixed_id ORDER BY n DESC LIMIT 1`),
+    userNixDays: db.prepare(`
+      SELECT date(created_at) AS d FROM nixes WHERE nixer_id = ?
+      GROUP BY d ORDER BY d ASC`),
     userTopTargets: db.prepare(`
       SELECT b.id AS uid, b.name AS name, COUNT(*) AS n
       FROM nixes nx JOIN users b ON b.id = nx.nixed_id
@@ -114,6 +120,7 @@ function prepareAll(db) {
       ON CONFLICT(user_id) DO UPDATE SET
         total_xp = total_xp + excluded.total_xp`),
     bpClaims: db.prepare('SELECT tier FROM bp_claims WHERE user_id = ?'),
+    bpClaimCount: db.prepare('SELECT COUNT(*) AS n FROM bp_claims WHERE user_id = ?'),
     bpClaim: db.prepare('INSERT INTO bp_claims (user_id, tier) VALUES (?, ?)'),
     bpClaimExists: db.prepare('SELECT 1 FROM bp_claims WHERE user_id = ? AND tier = ?'),
     userCosmetics: db.prepare('SELECT title, border, badge FROM user_cosmetics WHERE user_id = ?'),

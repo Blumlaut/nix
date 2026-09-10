@@ -2,7 +2,10 @@
 
 /**
  * Achievement catalog. Seeded once on startup via `INSERT OR IGNORE` so
- * existing installs keep their rows and new installs get the definitions.
+ * existing installs keep their rows and new installs get the definitions:
+ * achievements are spread over the whole 500-level ladder (every ~25 levels
+ * plus the wider gaps up top), the nix/received ladders, daily and long-term
+ * activity, rivalries and the nixpass itself.
  */
 const ACHIEVEMENTS = [
   [1, 'first_nix', 'First Blood', 'Give your first nix', '⚡', 'nixing'],
@@ -47,6 +50,33 @@ const ACHIEVEMENTS = [
   [40, 'lvl_400', 'Mythical', 'Reach level 400', '🐉', 'level'],
   [41, 'lvl_450', 'Transcendent', 'Reach level 450', '🌌', 'level'],
   [42, 'lvl_500', 'Nix Deity', 'Reach the maximum level 500', '👑', 'level'],
+  [43, 'nix_750', 'Nix Tsunami', 'Give 750 nixes', '🌊', 'nixing'],
+  [44, 'nix_1000', 'Nixpocalypse', 'Give 1000 nixes', '🧨', 'nixing'],
+  [45, 'received_250', 'Punching Bag', 'Get nixed 250 times', '🥊', 'receiving'],
+  [46, 'received_500', 'Unkillable', 'Get nixed 500 times', '🛡️', 'receiving'],
+  [47, 'hat_trick', 'Hat Trick', 'Nix 3 people in a single day', '🎩', 'activity'],
+  [48, 'bloodbath', 'Bloodbath', 'Nix 10 people in a single day', '🩸', 'activity'],
+  [49, 'days_10', 'Consistent', 'Nix on 10 different days', '📆', 'activity'],
+  [50, 'days_50', 'Ritual', 'Nix on 50 different days', '🗓️', 'activity'],
+  [51, 'days_100', 'Inevitable', 'Nix on 100 different days', '⏳', 'activity'],
+  [52, 'week_7', 'Weekly Warrior', 'Nix on 7 days in a row', '⛓️', 'activity'],
+  [53, 'duo_25', 'Dynamic Duo', 'Nix the same person 25 times', '🤝', 'nemesis'],
+  [54, 'duo_50', 'Obsessed', 'Nix the same person 50 times', '🧲', 'nemesis'],
+  [55, 'revenge_10', 'Grudge Holder', 'Nix your nemesis 10 times', '🪓', 'nemesis'],
+  [56, 'claim_5', 'Fashionista', 'Claim 5 nixpass tiers', '💅', 'meta'],
+  [57, 'claim_all', 'Full Wardrobe', 'Claim every nixpass tier', '🧥', 'meta'],
+  [58, 'cosmetics_all', 'Dressed to Impress', 'Show a title, a border and a badge at once', '🕶️', 'meta'],
+  [59, 'collector_25', 'Curator', 'Unlock 25 achievements', '🗂️', 'meta'],
+  [60, 'collector_50', 'Hoarder', 'Unlock 50 achievements', '📚', 'meta'],
+  [61, 'lvl_15', 'Warming Up', 'Reach level 15', '☕', 'level'],
+  [62, 'lvl_25', 'On a Roll', 'Reach level 25', '🎳', 'level'],
+  [63, 'lvl_175', 'Warlord', 'Reach level 175', '🪖', 'level'],
+  [64, 'lvl_225', 'Overachiever', 'Reach level 225', '📈', 'level'],
+  [65, 'lvl_275', 'Untouchable', 'Reach level 275', '🌀', 'level'],
+  [66, 'lvl_325', 'Juggernaut', 'Reach level 325', '🚂', 'level'],
+  [67, 'lvl_375', 'Leviathan', 'Reach level 375', '🐋', 'level'],
+  [68, 'lvl_425', 'Starforged', 'Reach level 425', '🌠', 'level'],
+  [69, 'lvl_475', 'Eternal', 'Reach level 475', '⏱️', 'level'],
 ];
 
 /**
