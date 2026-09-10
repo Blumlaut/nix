@@ -6,7 +6,7 @@ import { timeAgo } from '../util';
 import UserAvatar from '../components/UserAvatar';
 
 // Badge cosmetic value → shown emoji. Keep in step with BP_TIERS badges.
-const BADGE_ICONS = { legend: '🏆', mythic: '💎' };
+const BADGE_ICONS = { legend: '🏆', mythic: '💎', celestial: '🌟', eternal: '👑', phoenix: '🔥', deity: '🔱' };
 
 // XP runs into six digits, so every XP number is grouped the same way.
 const xp = (n) => Number(n).toLocaleString('en-US');

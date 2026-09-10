@@ -202,18 +202,27 @@ test('extended achievement thresholds unlock at their milestones', () => {
 test('extended nixpass tiers are reachable and grant their cosmetics', () => {
   const noah = freshUser('discord-noah', 'Noah');
   const last = prog.getBattlepass(noah.id).tiers.at(-1);
-  assert.equal(last.tier, 16);
+  assert.equal(last.tier, 31);
+  assert.equal(last.xp, 99800, 'the last tier sits on the level-500 cap');
   assert.equal(last.reward, 'badge');
 
-  prog.awardXp(noah.id, 3000); // level 16
-  const bp = prog.getBattlepass(noah.id);
-  assert.ok(bp.tiers.every((t) => t.unlocked), 'all tiers unlocked at 3000 XP');
-  assert.equal(bp.highestTier, 16);
+  prog.awardXp(noah.id, 4800); // level 25
+  let bp = prog.getBattlepass(noah.id);
+  assert.equal(bp.highestTier, 18, 'tier 18 is the highest unlocked at level 25');
+  assert.deepEqual(prog.claimBpTier(noah.id, 17), { ok: true });
+  assert.deepEqual(prog.claimBpTier(noah.id, 18), { ok: true });
+  assert.equal(prog.getUserCosmetics(noah.id).title, 'Nix Warlord');
+  assert.equal(prog.getUserCosmetics(noah.id).border, 'ruby');
+
+  prog.awardXp(noah.id, 99800 - 4800); // level 500
+  bp = prog.getBattlepass(noah.id);
+  assert.ok(bp.tiers.every((t) => t.unlocked), 'all tiers unlocked at the cap');
+  assert.equal(bp.highestTier, 31);
 
   assert.deepEqual(prog.claimBpTier(noah.id, 12), { ok: true });
-  assert.deepEqual(prog.claimBpTier(noah.id, 16), { ok: true });
-  assert.equal(prog.getUserCosmetics(noah.id).border, 'emerald');
-  assert.equal(prog.getUserCosmetics(noah.id).badge, 'mythic');
+  assert.deepEqual(prog.claimBpTier(noah.id, 31), { ok: true });
+  assert.equal(prog.getUserCosmetics(noah.id).border, 'ruby', 'the highest claimed border wins');
+  assert.equal(prog.getUserCosmetics(noah.id).badge, 'deity');
   assert.equal(bp.maxLevel, 500);
 });
 
@@ -277,7 +286,7 @@ test('nix-day achievements cover distinct and consecutive days', () => {
 
 test('nixpass claim and cosmetic achievements track the collection', () => {
   const quin = freshUser('discord-quin', 'Quin');
-  prog.awardXp(quin.id, 3000); // level 16 → every tier claimable
+  prog.awardXp(quin.id, 99800); // level 500 → every tier claimable
 
   for (const tier of [1, 2, 3, 4]) assert.deepEqual(prog.claimBpTier(quin.id, tier), { ok: true });
   let unlocked = prog.syncAchievements(quin.id);
@@ -286,9 +295,9 @@ test('nixpass claim and cosmetic achievements track the collection', () => {
   assert.deepEqual(prog.claimBpTier(quin.id, 5), { ok: true });
   unlocked = prog.syncAchievements(quin.id);
   assert.ok(unlocked.includes('claim_5'), '5 claims');
-  assert.ok(!unlocked.includes('claim_all'), '11 tiers are still unclaimed');
+  assert.ok(!unlocked.includes('claim_all'), '26 tiers are still unclaimed');
 
-  for (let tier = 6; tier <= 16; tier++) prog.claimBpTier(quin.id, tier);
+  for (const t of prog.getBattlepass(quin.id).tiers) prog.claimBpTier(quin.id, t.tier);
   unlocked = prog.syncAchievements(quin.id);
   assert.ok(unlocked.includes('claim_all'), 'every tier claimed');
   assert.ok(unlocked.includes('cosmetics_all'), 'title, border and badge are all granted');

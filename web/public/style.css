@@ -76,7 +76,12 @@
   --cos-gold: #fbbf24;
   --cos-emerald: #10b981;
   --cos-platinum: #8fa3c8;
+  --cos-ruby: #ef4444;
+  --cos-sapphire: #2563eb;
+  --cos-jade: #14b8a6;
   --rainbow: linear-gradient(90deg, #ff6b6b, #fbbf24, #51cf66, #4a9eff, #a855f7);
+  --aurora: linear-gradient(90deg, #22d3ee, #818cf8, #f472b6);
+  --prismatic: linear-gradient(135deg, #f43f5e, #f59e0b, #22c55e, #06b6d4, #8b5cf6, #ec4899);
 
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-display: "Space Grotesk", var(--font-ui);
@@ -989,16 +994,25 @@ main > :nth-child(6) { animation-delay: .25s; }
 .border-gold{border:2px solid var(--cos-gold)!important}
 .border-emerald{border:2px solid var(--cos-emerald)!important}
 .border-platinum{border:2px solid var(--cos-platinum)!important}
-.border-rainbow{--cos-bg:var(--surface);border:2px solid transparent!important;background-image:linear-gradient(var(--cos-bg),var(--cos-bg)),var(--rainbow);background-origin:border-box;background-clip:padding-box,border-box}
-/* The row hover tints the background — keep the rainbow fill in step with
+.border-ruby{border:2px solid var(--cos-ruby)!important}
+.border-sapphire{border:2px solid var(--cos-sapphire)!important}
+.border-jade{border:2px solid var(--cos-jade)!important}
+/* Gradient borders paint the gradient as a background layer and mask the
+   middle with the surface colour, so every one of them needs the same
+   background-image recipe and just swaps --cos-gradient. */
+.border-rainbow,.border-aurora,.border-prismatic{--cos-bg:var(--surface);border:2px solid transparent!important;background-image:linear-gradient(var(--cos-bg),var(--cos-bg)),var(--cos-gradient);background-origin:border-box;background-clip:padding-box,border-box}
+.border-rainbow{--cos-gradient:var(--rainbow)}
+.border-aurora{--cos-gradient:var(--aurora)}
+.border-prismatic{--cos-gradient:var(--prismatic)}
+/* The row hover tints the background — keep the gradient fill in step with
    it (hover must use background-color, never the `background` shorthand,
    which would wipe the gradient). */
-.list li.border-rainbow:hover,.list li.pair-row:hover .border-rainbow,.feed li:hover .border-rainbow{--cos-bg:var(--surface-2)}
+.list li.border-rainbow:hover,.list li.border-aurora:hover,.list li.border-prismatic:hover,.list li.pair-row:hover .border-rainbow,.list li.pair-row:hover .border-aurora,.list li.pair-row:hover .border-prismatic,.feed li:hover .border-rainbow,.feed li:hover .border-aurora,.feed li:hover .border-prismatic{--cos-bg:var(--surface-2)}
 /* Give bordered list rows a little breathing room from the hairlines. The 2px
    border must replace padding (not add to it) so framed rows keep the same
    outer size AND the same content inset — otherwise their avatars/text sit 2px
    right of every other row (same alignment-bug family as #3/#9). */
-.list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-emerald,.list li.border-platinum,.list li.border-rainbow{margin:5px -8px;padding:7px 6px}
+.list li.border-blue,.list li.border-purple,.list li.border-gold,.list li.border-emerald,.list li.border-platinum,.list li.border-ruby,.list li.border-sapphire,.list li.border-jade,.list li.border-rainbow,.list li.border-aurora,.list li.border-prismatic{margin:5px -8px;padding:7px 6px}
 
 /* Username pill in nix feeds. The always-present transparent border keeps
    the layout identical for users without a border; a border cosmetic then
@@ -1020,7 +1034,12 @@ main > :nth-child(6) { animation-delay: .25s; }
 .cos-dot.gold{background:var(--cos-gold)}
 .cos-dot.emerald{background:var(--cos-emerald)}
 .cos-dot.platinum{background:var(--cos-platinum)}
+.cos-dot.ruby{background:var(--cos-ruby)}
+.cos-dot.sapphire{background:var(--cos-sapphire)}
+.cos-dot.jade{background:var(--cos-jade)}
 .cos-dot.rainbow{background:var(--rainbow)}
+.cos-dot.aurora{background:var(--aurora)}
+.cos-dot.prismatic{background:var(--prismatic)}
 
 /* Nixpass title */
 .bp-title{font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:middle}

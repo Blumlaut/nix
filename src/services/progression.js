@@ -35,8 +35,9 @@ function longestDayRun(days) {
   return best;
 }
 
-// `xp` is a total-XP threshold; with 200 XP per level, tier N unlocks at
-// level N.
+// `xp` is a total-XP threshold; with 200 XP per level tiers 1-16 land on the
+// level of their own number, the milestone tiers above them only every
+// 5-50 levels so the track covers the level-500 cap without 484 extra steps.
 const BP_TIERS = [
   { tier: 1, name: 'Rookie', xp: 0, reward: 'title', value: 'Rookie' },
   { tier: 2, name: 'Blue Border', xp: 200, reward: 'border', value: 'blue' },
@@ -54,6 +55,21 @@ const BP_TIERS = [
   { tier: 14, name: 'Platinum Border', xp: 2600, reward: 'border', value: 'platinum' },
   { tier: 15, name: 'Nix Immortal', xp: 2800, reward: 'title', value: 'Nix Immortal' },
   { tier: 16, name: 'Nix Mythic', xp: 3000, reward: 'badge', value: 'mythic' },
+  { tier: 17, name: 'Nix Warlord', xp: 3800, reward: 'title', value: 'Nix Warlord' },
+  { tier: 18, name: 'Ruby Border', xp: 4800, reward: 'border', value: 'ruby' },
+  { tier: 19, name: 'Nix Champion', xp: 5800, reward: 'title', value: 'Nix Champion' },
+  { tier: 20, name: 'Nix Comet', xp: 7800, reward: 'badge', value: 'celestial' },
+  { tier: 21, name: 'Sapphire Border', xp: 9800, reward: 'border', value: 'sapphire' },
+  { tier: 22, name: 'Nix Paragon', xp: 14800, reward: 'title', value: 'Nix Paragon' },
+  { tier: 23, name: 'Jade Border', xp: 19800, reward: 'border', value: 'jade' },
+  { tier: 24, name: 'Nix Eternal', xp: 29800, reward: 'badge', value: 'eternal' },
+  { tier: 25, name: 'Nix Ascendant', xp: 39800, reward: 'title', value: 'Nix Ascendant' },
+  { tier: 26, name: 'Aurora Border', xp: 49800, reward: 'border', value: 'aurora' },
+  { tier: 27, name: 'Nix Archon', xp: 59800, reward: 'title', value: 'Nix Archon' },
+  { tier: 28, name: 'Nix Phoenix', xp: 69800, reward: 'badge', value: 'phoenix' },
+  { tier: 29, name: 'Nix Primordial', xp: 79800, reward: 'title', value: 'Nix Primordial' },
+  { tier: 30, name: 'Prismatic Border', xp: 89800, reward: 'border', value: 'prismatic' },
+  { tier: 31, name: 'Nix Deity', xp: 99800, reward: 'badge', value: 'deity' },
 ];
 
 function createProgressionService(db, q) {
