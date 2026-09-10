@@ -975,6 +975,9 @@ main > :nth-child(6) { animation-delay: .25s; }
 .nix-given{font-weight:700}
 .nix-sep{color:var(--muted);font-size:.75rem}
 .nix-received{font-weight:600;color:var(--muted)}
+.nix-net{font-weight:700;font-variant-numeric:tabular-nums}
+.nix-net.positive{color:var(--ok)}
+.nix-net.negative{color:var(--err)}
 
 /* Border cosmetics — wrap the whole element they are applied to
    (leaderboard rows, profile header card, username pills in nix feeds). */

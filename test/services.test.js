@@ -99,6 +99,33 @@ test('achievements unlock retroactively for pre-existing nixes', () => {
   assert.equal(prog.getUserXp(fiona.id).totalXp, xpAfter);
 });
 
+test('net leaderboard ranks given minus received for every user', () => {
+  const dana = freshUser('discord-dana', 'Dana');
+  const evan = freshUser('discord-evan', 'Evan');
+  const fred = freshUser('discord-fred', 'Fred');
+  // Dana gives 3, receives 1 → net +2. Evan is the mirror image → net -2.
+  for (let i = 0; i < 3; i++) q.insertNix.run(dana.id, evan.id);
+  q.insertNix.run(evan.id, dana.id);
+
+  const rows = q.netLeaderboard.all();
+  const byId = new Map(rows.map((r) => [r.uid, r]));
+  assert.deepEqual(
+    { given: byId.get(dana.id).given, received: byId.get(dana.id).received, net: byId.get(dana.id).net },
+    { given: 3, received: 1, net: 2 }
+  );
+  assert.equal(byId.get(evan.id).net, -2);
+  // Users with no nixes are listed at 0, not dropped.
+  assert.deepEqual(
+    { given: byId.get(fred.id).given, received: byId.get(fred.id).received, net: byId.get(fred.id).net },
+    { given: 0, received: 0, net: 0 }
+  );
+
+  const danaRank = rows.findIndex((r) => r.uid === dana.id);
+  const evanRank = rows.findIndex((r) => r.uid === evan.id);
+  assert.ok(danaRank < evanRank, 'higher net ranks first');
+  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].net >= rows[i].net, 'nets are descending');
+});
+
 test('streaks track runs', () => {
   const { alice, bob } = seed();
   q.insertNix.run(alice.id, bob.id);

@@ -160,6 +160,24 @@ export default function Board() {
         </Grid>
       </Grid>
 
+      <div className="card" id="net-balance">
+        <h2>Net Nix Balance</h2>
+        <p className="muted">Nixes given − nixes received, highest net first.</p>
+        <RankedList rows={board.netLeaderboard || []} empty="No users yet." row={(r) => (
+          <UserListRow key={r.uid} uid={r.uid} name={r.name} avatar={r.avatar} border={r.border}>
+            <span className="user-nixes">
+              <span className="nix-given">⚔️ {r.given}</span>
+              <span className="nix-sep">·</span>
+              <span className="nix-received">🛡️ {r.received}</span>
+              <span className="nix-sep">·</span>
+              <span className={`nix-net${r.net > 0 ? ' positive' : r.net < 0 ? ' negative' : ''}`}>
+                {r.net > 0 ? `+${r.net}` : r.net}
+              </span>
+            </span>
+          </UserListRow>
+        )} />
+      </div>
+
       <div className="card">
         <h2>Recent nixes</h2>
         <ul className="feed">

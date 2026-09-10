@@ -27,6 +27,18 @@ function prepareAll(db) {
       SELECT u.id AS uid, u.name AS name, u.avatar_url AS avatar, COUNT(*) AS n
       FROM nixes nx JOIN users u ON u.id = nx.nixed_id
       GROUP BY nx.nixed_id ORDER BY n DESC, u.name_ci ASC LIMIT ?`),
+    // Net balance (given − received) for every user, ranked highest first.
+    // Aggregates each side separately so a user's given and received counts
+    // never multiply each other, and users with no nixes still appear at 0.
+    netLeaderboard: db.prepare(`
+      SELECT u.id AS uid, u.name AS name, u.avatar_url AS avatar,
+             COALESCE(g.n, 0) AS given,
+             COALESCE(r.n, 0) AS received,
+             COALESCE(g.n, 0) - COALESCE(r.n, 0) AS net
+      FROM users u
+      LEFT JOIN (SELECT nixer_id, COUNT(*) AS n FROM nixes GROUP BY nixer_id) g ON g.nixer_id = u.id
+      LEFT JOIN (SELECT nixed_id, COUNT(*) AS n FROM nixes GROUP BY nixed_id) r ON r.nixed_id = u.id
+      ORDER BY net DESC, u.name_ci ASC`),
     topPairs: db.prepare(`
       SELECT a.id AS auid, a.name AS nixer, a.avatar_url AS aAvatar,
              b.id AS buid, b.name AS target, b.avatar_url AS bAvatar, COUNT(*) AS n

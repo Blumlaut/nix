@@ -111,6 +111,15 @@ function createApiRouter(deps) {
       me: { id: req.user.id, name: req.user.name, avatar: req.user.avatarUrl || null },
       targets: allUsers.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar_url || null })),
       leaderboard,
+      netLeaderboard: queries.netLeaderboard.all().map((r) => ({
+        uid: r.uid,
+        name: r.name,
+        avatar: r.avatar || null,
+        given: r.given,
+        received: r.received,
+        net: r.net,
+        border: activeBorder(r.uid),
+      })),
       mostNixed: queries.mostNixed.all(BOARD_TOP).map((r) => ({ uid: r.uid, name: r.name, avatar: r.avatar || null, n: r.n, border: activeBorder(r.uid) })),
       topPairs: queries.topPairs.all(BOARD_TOP).map((r) => ({
         auid: r.auid, buid: r.buid, nixer: r.nixer, target: r.target,
