@@ -87,6 +87,24 @@ function prepareAll(db) {
       FROM nixes nx JOIN users a ON a.id = nx.nixer_id JOIN users b ON b.id = nx.nixed_id
       WHERE nx.nixer_id = ? OR nx.nixed_id = ? ORDER BY nx.id DESC LIMIT 10`),
     topNixedUser: db.prepare('SELECT nixed_id FROM nixes GROUP BY nixed_id ORDER BY COUNT(*) DESC LIMIT 1'),
+    // Weeks are UTC, Monday-start. `nixesThisWeek` runs before the insert, so
+    // a count of 0 means the pending nix is the first one of the week.
+    nixesThisWeek: db.prepare(`
+      SELECT COUNT(*) AS n FROM nixes
+      WHERE created_at >= date('now', '-' || ((strftime('%w','now') + 6) % 7) || ' days')`),
+    // Achievement equivalent of the runtime bonus: does the user own the
+    // earliest nix of any Monday-start week? `NOT EXISTS` (rather than a
+    // week-group aggregate) keeps the definition identical to nixesThisWeek.
+    userFirstOfWeek: db.prepare(`
+      SELECT 1 FROM nixes nx
+      WHERE nx.nixer_id = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM nixes n2
+          WHERE n2.id < nx.id
+            AND date(n2.created_at, '-' || ((strftime('%w', n2.created_at) + 6) % 7) || ' days')
+              = date(nx.created_at, '-' || ((strftime('%w', nx.created_at) + 6) % 7) || ' days')
+        )
+      LIMIT 1`),
 
     // ── push subscriptions ────────────────────────────────────────────────
     upsertPushSub: db.prepare(`

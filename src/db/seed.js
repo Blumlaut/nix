@@ -77,6 +77,7 @@ const ACHIEVEMENTS = [
   [67, 'lvl_375', 'Leviathan', 'Reach level 375', '🐋', 'level'],
   [68, 'lvl_425', 'Starforged', 'Reach level 425', '🌠', 'level'],
   [69, 'lvl_475', 'Eternal', 'Reach level 475', '⏱️', 'level'],
+  [70, 'first_of_week', 'Early Bird', 'Give the first nix of a week', '🐦', 'activity'],
 ];
 
 /**

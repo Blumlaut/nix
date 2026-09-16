@@ -48,7 +48,7 @@ function seed() {
 }
 
 test('achievements are seeded on startup', () => {
-  assert.equal(q.allAchievements.all().length, 69);
+  assert.equal(q.allAchievements.all().length, 70);
 });
 
 test('nix flow awards XP and achievements', () => {
@@ -166,8 +166,8 @@ test('profile achievements show the profiled user, not the viewer', () => {
   const bobAch = new Map(users.getProfile(bob.id, prog).achievements.map((a) => [a.key, a.unlocked]));
 
   // Full catalog for both users, each with their own unlock state.
-  assert.equal(aliceAch.size, 69);
-  assert.equal(bobAch.size, 69);
+  assert.equal(aliceAch.size, 70);
+  assert.equal(bobAch.size, 70);
   assert.equal(aliceAch.get('nix_10'), true, 'alice (25 given) has Getting Warm');
   assert.equal(aliceAch.get('nix_25'), true, 'alice (25 given) has Serial Nixer');
   assert.equal(bobAch.get('nix_10'), false, 'bob never nixed — his own state, not alice\'s');
@@ -545,4 +545,31 @@ test('open() adds users.avatar_url to legacy databases (idempotently)', () => {
   db3.close();
 
   for (const suffix of ['', '-wal', '-shm']) { try { fs.unlinkSync(dbPath + suffix); } catch {} }
+});
+
+test('first nix of a week awards 3x XP and unlocks Early Bird', () => {
+  const pia = freshUser('discord-pia', 'Pia');
+  const quinn = freshUser('discord-quinn', 'Quinn');
+  const rita = freshUser('discord-rita', 'Rita');
+
+  // A nix early in an otherwise empty Monday-start week ...
+  const insertDated = db.prepare(
+    'INSERT INTO nixes (nixer_id, nixed_id, created_at) VALUES (?, ?, ?)'
+  );
+  insertDated.run(pia.id, quinn.id, '2021-03-01 09:00:00');
+  // ... and a later one in the same week: Rita was not first.
+  insertDated.run(rita.id, quinn.id, '2021-03-03 09:00:00');
+
+  assert.ok(prog.syncAchievements(pia.id).includes('first_of_week'), 'Pia opened that week');
+  assert.ok(!prog.syncAchievements(rita.id).includes('first_of_week'), 'Rita was second');
+
+  // The bonus triples the giver's XP only; the receiver award is unchanged.
+  const bonus = prog.awardNixXp(pia.id, quinn.id, { firstOfWeek: true });
+  assert.deepEqual(
+    { giverXp: bonus.giverXp, receiverXp: bonus.receiverXp, firstOfWeek: bonus.firstOfWeek },
+    { giverXp: 150, receiverXp: 20, firstOfWeek: true }
+  );
+
+  // Without the flag the standard award is unchanged.
+  assert.equal(prog.awardNixXp(pia.id, quinn.id).giverXp, 50);
 });

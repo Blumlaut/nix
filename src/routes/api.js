@@ -150,8 +150,11 @@ function createApiRouter(deps) {
     if (!target) return res.status(404).json({ error: 'target_not_found' });
     if (target.id === req.user.id) return res.status(400).json({ error: 'cannot_nix_self' });
 
+    // Must be read before the insert — the pending nix would otherwise count
+    // itself and the week would never have a first nix.
+    const firstOfWeek = progression.isFirstNixOfWeek();
     queries.insertNix.run(req.user.id, targetId);
-    const xp = progression.awardNixXp(req.user.id, targetId);
+    const xp = progression.awardNixXp(req.user.id, targetId, { firstOfWeek });
     const giverAch = progression.syncAchievements(req.user.id);
     const receiverAch = progression.syncAchievements(targetId);
     push.notifyNix(req.user.id, req.user.name, target.name);

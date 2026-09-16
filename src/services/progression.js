@@ -10,6 +10,7 @@ const XP_GIVEN = 50;
 const XP_RECEIVED = 20;
 const XP_ACH = 100;
 const XP_DAILY = 10;
+const XP_FIRST_OF_WEEK_MULT = 3;
 const XP_PER_LEVEL = 200;
 const MAX_LEVEL = 500;
 
@@ -122,9 +123,10 @@ function createProgressionService(db, q) {
     q.awardXp.run(userId, amount);
   }
 
-  function awardNixXp(giverId, receiverId) {
+  function awardNixXp(giverId, receiverId, opts = {}) {
+    const firstOfWeek = Boolean(opts.firstOfWeek);
     let giver = XP_GIVEN;
-    let receiver = XP_RECEIVED;
+    const receiver = XP_RECEIVED;
     let revenge = false;
     const nem = getNemesis(giverId);
     if (nem && nem.nemesisId === receiverId) {
@@ -132,9 +134,17 @@ function createProgressionService(db, q) {
       revenge = true;
       unlockAch(giverId, 'revenge');
     }
+    // Weekly first bonus stacks with revenge and, like it, applies to the
+    // giver only — the receiver has no part in being first.
+    if (firstOfWeek) giver *= XP_FIRST_OF_WEEK_MULT;
     if (giver) awardXp(giverId, giver);
     if (receiver) awardXp(receiverId, receiver);
-    return { giverXp: giver, receiverXp: receiver, revenge };
+    return { giverXp: giver, receiverXp: receiver, revenge, firstOfWeek };
+  }
+
+  /** True while the current UTC week (Monday start) has no nixes yet. */
+  function isFirstNixOfWeek() {
+    return q.nixesThisWeek.get().n === 0;
   }
 
   // ── Achievements ────────────────────────────────────────────────────────
@@ -186,6 +196,7 @@ function createProgressionService(db, q) {
     if (days.length >= 50) tryUnlock('days_50');
     if (days.length >= 100) tryUnlock('days_100');
     if (longestDayRun(days) >= 7) tryUnlock('week_7');
+    if (q.userFirstOfWeek.get(userId)) tryUnlock('first_of_week');
 
     const favorite = q.userMaxPerTarget.get(userId);
     if (favorite && favorite.n >= 25) tryUnlock('duo_25');
@@ -356,6 +367,7 @@ function createProgressionService(db, q) {
     getUserXp,
     awardXp,
     awardNixXp,
+    isFirstNixOfWeek,
     checkAchievements,
     syncAchievements,
     syncAchievementsForAll,
@@ -376,6 +388,7 @@ module.exports = {
   XP_RECEIVED,
   XP_ACH,
   XP_DAILY,
+  XP_FIRST_OF_WEEK_MULT,
   XP_PER_LEVEL,
   MAX_LEVEL,
 };

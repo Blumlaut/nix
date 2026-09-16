@@ -107,6 +107,7 @@ export default function Board() {
       <div className="card report">
         <h2>Report a nix</h2>
         <NixForm me={me} board={board} onResult={(msg) => setNixMsg(msg)} onNixed={loadBoard} />
+        <p className="muted">The first nix of the week is worth 3× XP.</p>
       </div>
 
       <Grid container spacing={2.5}>
@@ -267,7 +268,8 @@ function NixForm({ me, board, onNixed, onResult }) {
     if (r.status >= 400) { onResult({ text: 'Failed to record nix.', cls: 'muted' }); return; }
     let text;
     let cls = 'muted';
-    if (r.data.xp && r.data.xp.revenge) { text = `⚔️ Revenge nix! +${r.data.xp.giverXp} XP (2× bonus)`; cls = 'ok'; }
+    if (r.data.xp && r.data.xp.firstOfWeek) { text = `🌟 First nix of the week! +${r.data.xp.giverXp} XP (3× bonus)`; cls = 'ok'; }
+    else if (r.data.xp && r.data.xp.revenge) { text = `⚔️ Revenge nix! +${r.data.xp.giverXp} XP (2× bonus)`; cls = 'ok'; }
     else if (r.data.xp) { text = `Nix recorded. +${r.data.xp.giverXp} XP`; cls = 'ok'; }
     else { text = 'Nix recorded.'; }
     if (r.data.achievements?.giver?.length) text += ' 🏅 Achievement unlocked!';
