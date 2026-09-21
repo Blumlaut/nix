@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import ContributionGrid from '../components/ContributionGrid';
+import NixHeatmap, { heatColor } from '../components/NixHeatmap';
 import { fmtFull, fmtShort, fmtShortB, fmtFullB, rangeLabel } from '../components/dateFmt';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import {
   ResponsiveContainer,
   BarChart as RBarChart,
@@ -45,12 +50,22 @@ export default function Stats() {
   const [range, setRange] = useState('30d');
   const [data, setData] = useState(null);
   const [contrib, setContrib] = useState(null);
+  const [locs, setLocs] = useState(null);
+  const [locUser, setLocUser] = useState('all');
 
   useEffect(() => {
     api(`/api/stats?range=${range}`).then((r) => {
       if (r && r.status < 400) setData(r.data);
     });
   }, [range]);
+
+  // The heatmap follows the same range toggle as the rest of the page, plus
+  // an optional per-nixer filter.
+  useEffect(() => {
+    api(`/api/location/heatmap?range=${range}&user=${locUser}`).then((r) => {
+      if (r && r.status < 400) setLocs(r.data);
+    });
+  }, [range, locUser]);
 
   useEffect(() => {
     api('/api/me/nix-calendar').then((r) => {
@@ -124,6 +139,62 @@ export default function Stats() {
               v={data.summary.highestStreak ? data.summary.highestStreak.n : 0}
               sub={data.summary.highestStreak ? `${data.summary.highestStreak.name} · all time` : 'no streaks yet'}
             />
+          </div>
+
+          <div className="card chart-block" id="nix-map">
+            <div className="loc-head">
+              <div>
+                <h2>Where nixes happen</h2>
+                <p className="sub">
+                  {locs
+                    ? `${locs.located} of ${locs.nixes} nixes in this range have a location`
+                    : 'Loading…'}
+                </p>
+              </div>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="loc-user-label">Nixer</InputLabel>
+                <Select
+                  labelId="loc-user-label"
+                  id="loc-user"
+                  label="Nixer"
+                  value={locUser}
+                  onChange={(e) => setLocUser(e.target.value)}
+                  inputProps={{ 'aria-label': 'Filter the map by nixer' }}
+                >
+                  <MenuItem value="all">All nixers</MenuItem>
+                  {(locs?.users || []).map((u) => (
+                    <MenuItem key={u.id} value={String(u.id)}>{u.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
+
+            {locs?.cells.length ? (
+              <>
+                <NixHeatmap cells={locs.cells} cellDegrees={locs.cellDegrees} />
+                <div className="loc-foot">
+                  <span className="loc-legend" aria-hidden="true">
+                    <span className="loc-legend-label">Fewer</span>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <i key={i} style={{ background: heatColor((i + 1) / 5) }} />
+                    ))}
+                    <span className="loc-legend-label">More</span>
+                  </span>
+                  <p className="loc-note">
+                    Cells are about a kilometre wide and only appear once
+                    {' '}{locs.minCellNixes} nixes back them
+                    {locs.minCellNixers > 1 ? `, from at least ${locs.minCellNixers} different nixers` : ''}
+                    . Individual positions are never shown.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="empty">
+                {locs
+                  ? 'Not enough located nixes in this range yet.'
+                  : 'Loading…'}
+              </p>
+            )}
           </div>
 
           <div className="card chart-block">

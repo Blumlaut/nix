@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { currentFix } from '../geo';
 import { timeAgo, fmtLocal, kdRatio } from '../util';
 import {
   Alert,
@@ -263,7 +264,14 @@ function NixForm({ me, board, onNixed, onResult }) {
     e.preventDefault();
     const targetId = Number(target);
     if (!targetId) return;
-    const r = await api('/api/nix', { method: 'POST', body: JSON.stringify({ targetId }) });
+    const body = { targetId };
+    // Only ask the browser when recording is on server-side; if it has no
+    // fix to give (denied, unavailable, too slow) the nix goes without one.
+    if (board.location && board.location.enabled) {
+      const fix = await currentFix();
+      if (fix) body.location = fix;
+    }
+    const r = await api('/api/nix', { method: 'POST', body: JSON.stringify(body) });
     if (r.status === 400 && r.data.error === 'cannot_nix_self') { onResult({ text: "You can't nix yourself.", cls: 'muted' }); return; }
     if (r.status >= 400) { onResult({ text: 'Failed to record nix.', cls: 'muted' }); return; }
     let text;

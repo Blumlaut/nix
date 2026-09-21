@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Button, TextField, Alert, Paper, Typography, Box } from '@mui/material';
+import { Button, TextField, Alert, Paper, Typography, Box, FormControlLabel, Switch } from '@mui/material';
 
 function urlBase64ToUint8Array(b64) {
   const pad = '='.repeat((4 - b64.length % 4) % 4);
@@ -18,13 +18,44 @@ export default function Settings() {
   const [pushStatus, setPushStatus] = useState({ text: '', cls: '' });
   const [subscribed, setSubscribed] = useState(false);
   const [pushReady, setPushReady] = useState(false);
+  const [loc, setLoc] = useState(null);
+  const [locMsg, setLocMsg] = useState({ text: '', cls: '' });
 
   useEffect(() => {
     api('/api/me').then((r) => {
       if (r && r.data.name) setName(r.data.name);
     });
+    api('/api/location/settings').then((r) => {
+      if (r && r.status < 400) setLoc(r.data);
+    });
     initPush();
   }, []);
+
+  async function toggleLocation(e) {
+    const enabled = e.target.checked;
+    setLoc((l) => ({ ...l, enabled }));
+    const r = await api('/api/location/settings', { method: 'POST', body: JSON.stringify({ enabled }) });
+    if (!r || r.status >= 400) {
+      setLoc((l) => ({ ...l, enabled: !enabled }));
+      setLocMsg({ text: 'Could not save that setting.', cls: 'error' });
+      return;
+    }
+    setLocMsg({
+      text: enabled
+        ? 'Location recording is on.'
+        : 'Location recording is off — the browser is no longer asked and nothing new is stored.',
+      cls: 'ok',
+    });
+  }
+
+  async function forgetLocation() {
+    if (!window.confirm('Delete every location stored for your nixes? This cannot be undone.')) return;
+    const r = await api('/api/location', { method: 'DELETE' });
+    if (!r || r.status >= 400) { setLocMsg({ text: 'Could not delete your location data.', cls: 'error' }); return; }
+    const n = r.data.deleted || 0;
+    setLoc((l) => ({ ...l, located: 0 }));
+    setLocMsg({ text: `Deleted ${n} stored location${n === 1 ? '' : 's'}.`, cls: 'ok' });
+  }
 
   async function initPush() {
     if (!pushSupported()) {
@@ -147,6 +178,34 @@ export default function Settings() {
               : <Typography component="p" className={pushStatus.cls}>{pushStatus.text}</Typography>
           )}
         </Box>
+      </Paper>
+
+      <Paper component="section" className="card" elevation={0} id="location-settings">
+        <h2>Location</h2>
+        <p className="push-desc">
+          When you report a nix, this browser can attach where you were. Only your own position is
+          stored — never the person you nixed — rounded to roughly 100 m. The heatmap on the
+          statistics page only ever shows cells of about a kilometre.
+        </p>
+        {loc && (
+          <>
+            <FormControlLabel
+              control={<Switch checked={loc.enabled} onChange={toggleLocation} />}
+              label="Record my location when I nix"
+            />
+            <p className="muted">
+              {loc.located} location{loc.located === 1 ? '' : 's'} stored for your nixes.
+            </p>
+            <Button variant="outlined" color="error" disabled={!loc.located} onClick={forgetLocation}>
+              Delete my location data
+            </Button>
+          </>
+        )}
+        {locMsg.text && (
+          <Box sx={{ mt: 1 }}>
+            <Alert severity={locMsg.cls === 'error' ? 'error' : 'success'} className={locMsg.cls}>{locMsg.text}</Alert>
+          </Box>
+        )}
       </Paper>
 
       <Paper component="section" className="card" elevation={0}>

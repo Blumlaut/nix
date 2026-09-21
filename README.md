@@ -23,7 +23,7 @@ src/
     schema.js        authoritative, idempotent SQLite schema
     seed.js          achievement catalog seed
     queries.js       prepared statements, grouped by domain
-  services/          domain logic: stats, streaks, progression, users
+  services/          domain logic: stats, streaks, progression, users, locations
   middleware/        auth (requireSession), errors
   routes/            auth (Discord OAuth), api (/api/*)
   push.js            web push (VAPID + fan-out)
@@ -68,4 +68,21 @@ npm start              # serves the built frontend + API on :8080
 | GET    | /api/me        | no        | current user `{id, discordId, name}` |
 | POST   | /api/me/name   | no        | create/update own display name       |
 | GET    | /api/board     | yes       | leaderboard + pairs + recent in one  |
-| POST   | /api/nix       | yes       | record nix, body `{targetId}`        |
+| POST   | /api/nix       | yes       | record nix, body `{targetId, location?}` |
+| GET    | /api/location/settings | yes | own `{enabled, located}`     |
+| POST   | /api/location/settings | yes | set recording on/off, body `{enabled}` |
+| DELETE | /api/location  | yes       | wipe every position the user recorded |
+| GET    | /api/location/heatmap | yes | aggregated cells, `?range=&user=`     |
+
+## Location data (#13)
+A nix can carry where it happened. Only the **nixer's** position is stored —
+never the nixed target's — and only when the browser granted the geolocation
+permission *and* the user has not switched recording off in Settings (checked
+server-side; absence of a settings row means on). Recording is best-effort: a
+denied, unavailable or too-imprecise fix never delays or rejects a nix.
+
+`nix_locations` keeps coordinates rounded to 3 decimals (~110 m) — the client
+never picks the precision — and the heatmap on the statistics page only ever
+serves ~1.1 km cells, and only when at least 3 nixes (from 3 distinct nixers,
+or 3 of one nixer's own when filtered to them) back a cell. The map draws
+those cells with Leaflet on OpenStreetMap raster tiles.

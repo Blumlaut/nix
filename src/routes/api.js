@@ -21,12 +21,13 @@ const PUSH_UA_MAX = 300;
  * @param {object} deps.streaks     streaks service
  * @param {object} deps.progression progression service
  * @param {object} deps.users       users service
+ * @param {object} deps.locations   location service
  * @param {object} deps.push        push module
  * @param {object} deps.config      config
  */
 function createApiRouter(deps) {
   const {
-    queries, stats, streaks, progression, users, push, config,
+    queries, stats, streaks, progression, users, locations, push, config,
   } = deps;
   const router = express.Router();
 
@@ -109,6 +110,9 @@ function createApiRouter(deps) {
 
     res.json({
       me: { id: req.user.id, name: req.user.name, avatar: req.user.avatarUrl || null },
+      // Lets the nix form skip the browser geolocation prompt entirely for
+      // someone who switched recording off in their settings.
+      location: { enabled: locations.isEnabled(req.user.id) },
       targets: allUsers.map((u) => ({ id: u.id, name: u.name, avatar: u.avatar_url || null })),
       leaderboard,
       netLeaderboard: queries.netLeaderboard.all().map((r) => ({
@@ -153,7 +157,11 @@ function createApiRouter(deps) {
     // Must be read before the insert — the pending nix would otherwise count
     // itself and the week would never have a first nix.
     const firstOfWeek = progression.isFirstNixOfWeek();
-    queries.insertNix.run(req.user.id, targetId);
+    const { lastInsertRowid } = queries.insertNix.run(req.user.id, targetId);
+    // The nixer's position (never the target's), bundled with the nix so the
+    // two can never drift apart. Absent or rejected fixes are simply not
+    // recorded — the nix itself is unaffected.
+    locations.recordForNix(Number(lastInsertRowid), req.user.id, req.body && req.body.location);
     const xp = progression.awardNixXp(req.user.id, targetId, { firstOfWeek });
     const giverAch = progression.syncAchievements(req.user.id);
     const receiverAch = progression.syncAchievements(targetId);
@@ -211,6 +219,36 @@ function createApiRouter(deps) {
 
   router.get('/me/nix-calendar', requireSession(true), (req, res) => {
     res.json(stats.myNixCalendar(req.user.id));
+  });
+
+  // ── Location (#13) ─────────────────────────────────────────────────────
+  router.get('/location/settings', requireSession(true), (req, res) => {
+    res.json({
+      enabled: locations.isEnabled(req.user.id),
+      located: queries.userLocationCount.get(req.user.id).n,
+    });
+  });
+
+  router.post('/location/settings', requireSession(true), (req, res) => {
+    const enabled = req.body && req.body.enabled;
+    if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'invalid_enabled' });
+    return res.json({ enabled: locations.setEnabled(req.user.id, enabled) });
+  });
+
+  // The opt-out lever: wipe every fix this user ever recorded.
+  router.delete('/location', requireSession(true), (req, res) => {
+    return res.json({ ok: true, deleted: locations.forget(req.user.id) });
+  });
+
+  // Aggregated cells only — no endpoint ever returns a single position.
+  router.get('/location/heatmap', requireSession(true), (req, res) => {
+    const rawUser = req.query.user;
+    let userId = null;
+    if (rawUser && rawUser !== 'all') {
+      userId = Number(rawUser);
+      if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'invalid_user' });
+    }
+    return res.json(locations.heatmap({ range: req.query.range, userId }));
   });
 
   // ── Changelog ──────────────────────────────────────────────────────────

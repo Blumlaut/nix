@@ -705,6 +705,63 @@ input::placeholder { color: var(--placeholder); }
 .chart-block h2 { margin-bottom: 2px; }
 .chart-block .sub { color: var(--text-2); font-size: .85rem; margin: 0 0 16px; }
 
+/* ---------- Nix location heatmap (#13) ---------- */
+.loc-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.loc-head h2 { margin: 0; font-size: 1.02rem; font-weight: 600; font-family: var(--font-display); letter-spacing: .01em; }
+.loc-head .sub { color: var(--text-2); font-size: .85rem; margin: 4px 0 0; }
+
+/* Leaflet builds its own DOM under the container; the extra qualifiers keep
+   the rules ahead of leaflet.css, which ships with the lazy page chunk and
+   therefore lands after this sheet. */
+.nix-map {
+  height: 360px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 0;
+}
+.nix-map.leaflet-container { background: var(--surface-2); font-family: var(--font-ui); }
+.nix-map .leaflet-tile { transition: filter .2s ease; }
+.nix-map.leaflet-container .leaflet-control-attribution {
+  background: rgb(255 255 255 / .78);
+  color: var(--text-2);
+  font-size: 10px;
+}
+.nix-map .leaflet-control-attribution a { color: var(--text-2); }
+.nix-map .leaflet-control-zoom a { color: var(--text); background: var(--surface); }
+.nix-map .leaflet-tooltip {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  font-size: .75rem;
+}
+.nix-map .leaflet-tooltip-top::before { border-top-color: var(--border); }
+@media (max-width: 720px) { .nix-map { height: 280px; } }
+
+/* OSM serves light raster tiles only; invert them so the map does not glow
+   in the dark theme. */
+[data-theme="dark"] .nix-map .leaflet-tile {
+  filter: brightness(.6) invert(1) contrast(3) hue-rotate(200deg) saturate(.35);
+}
+[data-theme="dark"] .nix-map.leaflet-container .leaflet-control-attribution {
+  background: rgb(0 0 0 / .55);
+}
+
+.loc-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-top: 12px;
+}
+.loc-legend { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: .75rem; }
+.loc-legend i { display: block; width: 18px; height: 10px; border-radius: 3px; }
+.loc-legend-label { white-space: nowrap; }
+.loc-note { color: var(--text-2); font-size: .78rem; margin: 0; max-width: 56ch; }
+
 .chart { width: 100%; }
 
 .xlabels {

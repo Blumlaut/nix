@@ -98,6 +98,28 @@ const SCHEMA = `
     PRIMARY KEY (user_id, target_type, target_id)
   );
   CREATE INDEX IF NOT EXISTS idx_votes_target ON votes(target_type, target_id);
+  -- Opt-out switch for location recording (#13). A missing row means "on":
+  -- the browser's geolocation permission is the first gate, this is the
+  -- second one for someone who granted it and later changes their mind.
+  CREATE TABLE IF NOT EXISTS location_settings (
+    user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  -- Where a nix happened: the *nixer's* position, never the nixed target's.
+  -- Coordinates are rounded server-side (see services/locations.js) and only
+  -- written when the client actually had a fix. One row per nix at most; it
+  -- dies with the nix (and with the nixer) via the foreign keys.
+  CREATE TABLE IF NOT EXISTS nix_locations (
+    nix_id     INTEGER PRIMARY KEY REFERENCES nixes(id) ON DELETE CASCADE,
+    nixer_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lat        REAL NOT NULL,
+    lon        REAL NOT NULL,
+    accuracy   INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_nixloc_nixer   ON nix_locations(nixer_id);
+  CREATE INDEX IF NOT EXISTS idx_nixloc_created ON nix_locations(created_at);
 `;
 
 module.exports = { SCHEMA };

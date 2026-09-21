@@ -149,6 +149,24 @@ function prepareAll(db) {
         border = excluded.border,
         badge = excluded.badge`),
 
+    // ── locations (#13) ───────────────────────────────────────────────────
+    locationSettings: db.prepare('SELECT enabled FROM location_settings WHERE user_id = ?'),
+    upsertLocationSettings: db.prepare(`
+      INSERT INTO location_settings (user_id, enabled) VALUES (?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        enabled = excluded.enabled, updated_at = datetime('now')`),
+    // INSERT OR REPLACE: a nix id is the primary key, so a retried request
+    // overwrites its own fix instead of failing on the constraint.
+    insertNixLocation: db.prepare(`
+      INSERT OR REPLACE INTO nix_locations (nix_id, nixer_id, lat, lon, accuracy)
+      VALUES (?, ?, ?, ?, ?)`),
+    deleteUserLocations: db.prepare('DELETE FROM nix_locations WHERE nixer_id = ?'),
+    userLocationCount: db.prepare('SELECT COUNT(*) AS n FROM nix_locations WHERE nixer_id = ?'),
+    locatedNixers: db.prepare(`
+      SELECT u.id AS id, u.name AS name
+      FROM nix_locations nl JOIN users u ON u.id = nl.nixer_id
+      GROUP BY nl.nixer_id ORDER BY u.name_ci ASC`),
+
     // ── misc stats ────────────────────────────────────────────────────────
     today: db.prepare("SELECT date('now') AS d"),
     nowIso: db.prepare("SELECT datetime('now') AS t"),

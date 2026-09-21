@@ -12,6 +12,7 @@ const { createStatsService } = require('./services/stats');
 const { createStreaksService } = require('./services/streaks');
 const { createProgressionService } = require('./services/progression');
 const { createUsersService } = require('./services/users');
+const { createLocationsService } = require('./services/locations');
 const { createPush } = require('./push');
 const { createAuthRouter } = require('./routes/auth');
 const { createApiRouter } = require('./routes/api');
@@ -30,6 +31,7 @@ function createApp(config) {
   const streaks = createStreaksService(db, queries);
   const progression = createProgressionService(db, queries);
   const users = createUsersService(db, queries);
+  const locations = createLocationsService(db, queries);
   const push = createPush(queries, dataDir);
 
   // Nixes made before an achievement existed never ran a check, so a user's
@@ -75,7 +77,7 @@ function createApp(config) {
 
   app.use(createAuthRouter(config, queries));
   app.use('/api', createApiRouter({
-    queries, stats, streaks, progression, users, push, config,
+    queries, stats, streaks, progression, users, push, locations, config,
   }));
 
   // Keep the classic /nix easter egg outside the SPA.
