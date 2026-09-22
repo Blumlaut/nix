@@ -132,14 +132,28 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
         coarseCellDegrees: 0.1,
         minCellNixes: 2,
         minCellNixers: byUser ? 1 : 2,
+        coarseMinCellNixes: 1,
         located: byUser ? 3 : 12,
         nixes: 40,
         cells: byUser
-          ? [{ lat: 52.52, lon: 13.4, n: 3, nixers: 1, degrees: 0.01 }]
+          ? [{
+            lat: 52.52, lon: 13.4, n: 3, nixers: 1, degrees: 0.01,
+            pairs: [{ nixer: 'Zoe', target: 'Bob', at: '2025-01-05 10:00:00' }],
+          }]
           : [
-            { lat: 52.52, lon: 13.4, n: 9, nixers: 4, degrees: 0.01 },
-            { lat: 52.53, lon: 13.41, n: 3, nixers: 3, degrees: 0.01 },
-            { lat: 53.5, lon: 10.0, n: 2, nixers: 1, degrees: 0.1 },
+            {
+              lat: 52.52, lon: 13.4, n: 9, nixers: 4, degrees: 0.01,
+              pairs: [
+                { nixer: 'Wanda', target: 'Bob', at: '2025-01-05 10:00:00' },
+                { nixer: 'Uwe', target: 'Bob', at: '2025-01-04 09:00:00' },
+                { nixer: 'Vera', target: 'Bob', at: '2025-01-03 08:00:00' },
+              ],
+            },
+            { lat: 52.53, lon: 13.41, n: 3, nixers: 3, degrees: 0.01, pairs: [] },
+            {
+              lat: 53.5, lon: 10.0, n: 2, nixers: 1, degrees: 0.1,
+              pairs: [{ nixer: 'Zoe', target: 'Bob', at: '2025-01-02 12:00:00' }],
+            },
           ],
         users: [{ id: '2', name: 'Florian' }, { id: '3', name: 'Zoe' }],
       }),
@@ -150,30 +164,40 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   await page.locator('#nix-map .leaflet-container').waitFor({ timeout: 10_000 });
 
   assert.ok(heatUrls[0].includes('range=30d'), `map follows the page range: ${heatUrls[0]}`);
-  assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 3, 'one square per cell');
+  const bubbles = page.locator('#nix-map .nix-bubble');
+  assert.strictEqual(await bubbles.count(), 3, 'one bubble per cell');
+  assert.deepStrictEqual(
+    (await bubbles.allTextContents()).sort(),
+    ['2', '3', '9'],
+    'every bubble is labelled with its nix count',
+  );
+  assert.strictEqual(await page.locator('#nix-map .nix-bubble.is-coarse').count(), 1, 'the ~11 km cell is drawn dashed');
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
-  assert.match(await page.locator('#nix-map .loc-note').textContent(), /at least 2 different nixers/);
+  assert.match(await page.locator('#nix-map .loc-note').textContent(), /click one to see who nixed whom/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
 
-  // The coarse fallback cell is drawn at the size the server aggregated it at.
-  const widths = await page.locator('#nix-map path.leaflet-interactive')
-    .evaluateAll((paths) => paths.map((p) => p.getBoundingClientRect().width).sort((a, b) => a - b));
-  assert.ok(widths[2] > widths[1] * 5, `a ~11 km cell is far wider than a ~1 km one: ${widths}`);
+  // A bubble's popup lists who nixed whom in that area.
+  await bubbles.filter({ hasText: '9' }).click();
+  const popup = page.locator('#nix-map .leaflet-popup-content');
+  await popup.getByText('Wanda nixed Bob').waitFor({ timeout: 5_000 });
+  assert.match(await popup.textContent(), /Uwe nixed Bob/);
+  assert.match(await popup.textContent(), /2025-01-03/);
+  assert.match(await popup.textContent(), /Showing the latest 3 of 9/);
 
   // The range toggle on the page drives the map too.
   await page.getByRole('button', { name: '90 days' }).click();
-  await page.locator('#nix-map path.leaflet-interactive').nth(1).waitFor();
+  await page.locator('#nix-map .nix-bubble').nth(1).waitFor();
   assert.ok(heatUrls.some((s) => s.includes('range=90d')), `range change refetches: ${heatUrls.join(' ')}`);
 
   // …and so does the nixer filter, down to a single nixer's own cells.
   await page.locator('#loc-user').click();
   await page.getByRole('option', { name: 'Zoe' }).click();
-  await page.waitForFunction(() => document.querySelectorAll('#nix-map path.leaflet-interactive').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-bubble').length === 1);
   assert.ok(heatUrls.some((s) => s.includes('user=3')), `nixer filter refetches: ${heatUrls.join(' ')}`);
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /3 of 40 nixes/);
 }));
 
-test('the map says so when a range holds too little location data', withApp(async (ctx) => {
+test('the map says so when a range holds no location data', withApp(async (ctx) => {
   const page = await ctx.newPage({ width: 1280, height: 1000 });
   const json = (body) => (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
 
@@ -184,18 +208,15 @@ test('the map says so when a range holds too little location data', withApp(asyn
   await page.route('**/api/stats*', json(STATS));
   await page.route('**/api/me/nix-calendar', json({ map: {}, total: 0, end: '2025-01-31' }));
   await page.route('**/api/location/heatmap*', json({
-    range: '30d', cellDegrees: 0.01, coarseCellDegrees: 0.1, minCellNixes: 2, minCellNixers: 2,
-    located: 2, nixes: 40, cells: [], users: [],
+    range: '30d', cellDegrees: 0.01, coarseCellDegrees: 0.1,
+    minCellNixes: 2, minCellNixers: 2, coarseMinCellNixes: 1,
+    located: 0, nixes: 40, cells: [], users: [],
   }));
 
   await page.goto(ctx.url + '/stats', { waitUntil: 'domcontentloaded' });
   await page.locator('#nix-map').waitFor({ timeout: 10_000 });
-  await page.getByText(/2 located nixes so far/).waitFor({ timeout: 10_000 });
-  assert.match(
-    await page.locator('#nix-map .empty').textContent(),
-    /a cell shows up once 2 nixes land within about a kilometre, from at least 2 different nixers/,
-  );
-  assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 0);
+  await page.getByText(/No located nixes in this range yet/).waitFor({ timeout: 10_000 });
+  assert.strictEqual(await page.locator('#nix-map .nix-bubble').count(), 0);
 }));
 
 test('the settings switch turns recording off and on again', withApp(async (ctx) => {

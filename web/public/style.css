@@ -742,7 +742,33 @@ input::placeholder { color: var(--placeholder); }
   font-size: .75rem;
 }
 .nix-map .leaflet-tooltip-top::before { border-top-color: var(--border); }
+.nix-map .leaflet-popup-content-wrapper,
+.nix-map .leaflet-popup-tip { background: var(--surface); color: var(--text); }
+.nix-map .leaflet-popup-content-wrapper { border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.nix-map .leaflet-popup-close-button { color: var(--text-2); }
 @media (max-width: 720px) { .nix-map { height: 280px; } }
+
+/* One bubble per published cell: the count is the label, the size is the
+   volume. A dashed ring means the server could only round it to ~11 km. */
+.nix-bubble { background: none; border: none; }
+.nix-bubble span {
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box; border: 2px solid transparent; border-radius: 50%;
+  color: #fff; font-size: .82rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgb(0 0 0 / .5);
+  box-shadow: 0 1px 4px rgb(0 0 0 / .35);
+  transition: transform .15s ease;
+}
+.nix-bubble:hover span { transform: scale(1.08); }
+.nix-bubble.is-coarse span { border-style: dashed; border-color: rgb(255 255 255 / .85); }
+
+.nix-pop { min-width: 190px; font-size: .78rem; }
+.nix-pop strong { display: block; margin-bottom: 6px; }
+.nix-pop ul { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; }
+.nix-pop li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+.nix-pop li time { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.nix-pop-more { margin: 6px 0 0; color: var(--text-2); }
 
 /* OSM serves light raster tiles only; invert them so the map does not glow
    in the dark theme. */
@@ -753,14 +779,7 @@ input::placeholder { color: var(--placeholder); }
   background: rgb(0 0 0 / .55);
 }
 
-.loc-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap; margin-top: 12px;
-}
-.loc-legend { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: .75rem; }
-.loc-legend i { display: block; width: 18px; height: 10px; border-radius: 3px; }
-.loc-legend-label { white-space: nowrap; }
-.loc-note { color: var(--text-2); font-size: .78rem; margin: 0; max-width: 56ch; }
+.loc-note { color: var(--text-2); font-size: .78rem; margin: 12px 0 0; max-width: 72ch; }
 
 .chart { width: 100%; }
 

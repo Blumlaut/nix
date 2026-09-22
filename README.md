@@ -72,7 +72,7 @@ npm start              # serves the built frontend + API on :8080
 | GET    | /api/location/settings | yes | own `{enabled, located}`     |
 | POST   | /api/location/settings | yes | set recording on/off, body `{enabled}` |
 | DELETE | /api/location  | yes       | wipe every position the user recorded |
-| GET    | /api/location/heatmap | yes | aggregated cells, `?range=&user=`     |
+| GET    | /api/location/heatmap | yes | aggregated cells + pairs, `?range=&user=` |
 
 ## Location data (#13)
 A nix can carry where it happened. Only the **nixer's** position is stored —
@@ -82,9 +82,12 @@ server-side; absence of a settings row means on). Recording is best-effort: a
 denied, unavailable or too-imprecise fix never delays or rejects a nix.
 
 `nix_locations` keeps coordinates rounded to 3 decimals (~110 m) — the client
-never picks the precision — and the heatmap on the statistics page only ever
-serves ~1.1 km cells once at least 2 nixes from 2 distinct nixers back one (or
-2 of one nixer's own when filtered to them). Thinner data is not dropped: any
-cell with at least 2 nixes is also served on a ~11 km grid, so a lone nixer
-shows up as a rough area rather than not at all. The map draws those cells
-with Leaflet on OpenStreetMap raster tiles.
+never picks the precision — and the map on the statistics page only ever
+serves aggregated cells, never a position: ~1.1 km cells once at least 2 nixes
+from 2 distinct nixers back one (or 2 of one nixer's own when filtered to
+them), and a ~11 km cell for anything thinner — down to a single fix — so a
+lone nixer still shows up as a rough area. Each cell also carries the nixes
+behind it (`nixer`, `target`, `at`), which is what the bubble's popup lists;
+those pairs are already public on the board. The map draws one numbered
+bubble per cell — sized by the count, dashed when the cell is only known to
+~11 km — with Leaflet on OpenStreetMap raster tiles.

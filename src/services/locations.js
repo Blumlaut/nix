@@ -10,9 +10,13 @@
  * nix is never rejected, delayed or reshaped because of location.
  *
  * Privacy: the raw fix never leaves this module. Coordinates are rounded to
- * ~110 m before they are written, and the heatmap publishes ~1.1 km cells
- * backed by more than one nixer — anything thinner than that is only served
- * as a ~11 km area, never as a single position.
+ * ~110 m before they are written, and the map publishes ~1.1 km cells backed
+ * by more than one nixer — anything thinner is only served as a ~11 km area
+ * (a lone fix included), never as a single position.
+ *
+ * A published cell also carries who nixed whom inside it, so the map can name
+ * the pairs behind a bubble. Those pairs are already public on the board; the
+ * location attached to them is never finer than the cell.
  */
 
 // ~110 m at the equator — as precise as a location gets, in the database or
@@ -22,12 +26,16 @@ const STORE_DECIMALS = 3;
 const CELL_DECIMALS = 2;
 // Fallback cell size: ~11 km. What a lone nixer's fixes are published as.
 const COARSE_CELL_DECIMALS = 1;
+// Pairs listed per cell. The cell keeps counting the rest of its nixes.
+const PAIRS_LIMIT = 100;
 // A fix this bad says nothing useful about where the nix happened.
 const MAX_ACCURACY_M = 200;
-// Floor for a published cell: this many nixes, and — on the fine grid — from
-// this many distinct nixers.
+// Floor for a published fine cell: this many nixes from this many distinct
+// nixers. The coarse grid only needs one fix, which is where a lone nixer's
+// nixes land — a city-sized area, not a position.
 const MIN_CELL_NIXES = 2;
 const MIN_CELL_NIXERS = 2;
+const COARSE_MIN_CELL_NIXES = 1;
 const RANGES = new Set(['7d', '30d', '90d', 'all']);
 const DEFAULT_RANGE = '30d';
 
@@ -49,6 +57,41 @@ function parseFix(raw) {
   if (acc !== null && acc > MAX_ACCURACY_M) return null;
 
   return { lat: round(lat, STORE_DECIMALS), lon: round(lon, STORE_DECIMALS), accuracy: acc };
+}
+
+/**
+ * Fill in the nixes behind each published cell. The cell keys are computed by
+ * SQLite's own ROUND, so they line up with the aggregation exactly; a fix
+ * belongs to its fine cell when that cell is published, otherwise to the
+ * coarse one it falls back into.
+ */
+function attachPairs(cells, located, db) {
+  if (!cells.length) return;
+  const index = new Map(cells.map((c) => [`${c.degrees}:${c.lat}:${c.lon}`, c]));
+  const fineKey = (lat, lon) => `${10 ** -CELL_DECIMALS}:${lat}:${lon}`;
+  const coarseKey = (lat, lon) => `${10 ** -COARSE_CELL_DECIMALS}:${lat}:${lon}`;
+
+  const rows = db.prepare(`
+    SELECT ROUND(nl.lat, ${CELL_DECIMALS}) AS flat,
+           ROUND(nl.lon, ${CELL_DECIMALS}) AS flon,
+           ROUND(nl.lat, ${COARSE_CELL_DECIMALS}) AS clat,
+           ROUND(nl.lon, ${COARSE_CELL_DECIMALS}) AS clon,
+           u.name AS nixer,
+           t.name AS target,
+           n.created_at AS at
+    FROM nix_locations nl
+    JOIN nixes n ON n.id = nl.nix_id
+    JOIN users u ON u.id = nl.nixer_id
+    JOIN users t ON t.id = n.nixed_id
+    ${located.where}
+    ORDER BY n.created_at DESC, n.id DESC
+  `).all(located.params);
+
+  for (const row of rows) {
+    const cell = index.get(fineKey(row.flat, row.flon)) || index.get(coarseKey(row.clat, row.clon));
+    if (!cell || cell.pairs.length >= PAIRS_LIMIT) continue;
+    cell.pairs.push({ nixer: row.nixer, target: row.target, at: row.at });
+  }
 }
 
 /**
@@ -129,7 +172,7 @@ function createLocationsService(db, q) {
       ${located.where}
       GROUP BY ROUND(nl.lat, ${CELL_DECIMALS}), ROUND(nl.lon, ${CELL_DECIMALS})
       HAVING COUNT(*) >= @minNixes AND COUNT(DISTINCT nl.nixer_id) >= @minNixers
-    `).all(params).map((c) => ({ ...c, degrees: 10 ** -CELL_DECIMALS }));
+    `).all(params).map((c) => ({ ...c, degrees: 10 ** -CELL_DECIMALS, pairs: [] }));
 
     // Whatever the fine grid could not publish is retried once at ~11 km, so
     // one nixer's fixes are shown as a rough area instead of not at all.
@@ -153,11 +196,14 @@ function createLocationsService(db, q) {
             AND f.lon = ROUND(nl.lon, ${CELL_DECIMALS}))`,
       ].join(' AND ')}
       GROUP BY ROUND(nl.lat, ${COARSE_CELL_DECIMALS}), ROUND(nl.lon, ${COARSE_CELL_DECIMALS})
-      HAVING COUNT(*) >= @minNixes
-    `).all(params).map((c) => ({ ...c, degrees: 10 ** -COARSE_CELL_DECIMALS }));
+      HAVING COUNT(*) >= @coarseMinNixes
+    `).all({ ...params, coarseMinNixes: COARSE_MIN_CELL_NIXES })
+      .map((c) => ({ ...c, degrees: 10 ** -COARSE_CELL_DECIMALS, pairs: [] }));
 
     const published = [...cells, ...coarse]
       .sort((a, b) => b.n - a.n || a.lat - b.lat || a.lon - b.lon);
+
+    attachPairs(published, located, db);
 
     // Coverage: how much of the selected range even carries a location.
     const totals = db.prepare(`
@@ -172,6 +218,7 @@ function createLocationsService(db, q) {
       coarseCellDegrees: 10 ** -COARSE_CELL_DECIMALS,
       minCellNixes: MIN_CELL_NIXES,
       minCellNixers: minNixers,
+      coarseMinCellNixes: COARSE_MIN_CELL_NIXES,
       located: totals.located,
       nixes: totals.nixes,
       cells: published,

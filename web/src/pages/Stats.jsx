@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import ContributionGrid from '../components/ContributionGrid';
-import NixHeatmap, { heatColor } from '../components/NixHeatmap';
+import NixMap from '../components/NixMap';
 import { fmtFull, fmtShort, fmtShortB, fmtFullB, rangeLabel } from '../components/dateFmt';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
@@ -39,15 +39,13 @@ const TOOLTIP_STYLE = {
   fontVariantNumeric: 'tabular-nums',
 };
 
-// The map's empty state. A cell only exists once the server's floor is met,
-// so spell the floor out instead of saying "not enough" next to a coverage
-// line that says otherwise.
-function emptyMapText({ located, nixes, minCellNixes, minCellNixers }) {
+// The map's empty state. Every located nix produces a bubble (thin data as a
+// ~11 km area), so this is really the "nothing located here yet" case.
+function emptyMapText({ nixes, located }) {
   if (!nixes) return 'No nixes in this range yet.';
-  if (!located) return 'No nixes in this range have a location yet.';
-  const plural = located === 1 ? 'nix' : 'nixes';
-  const nixers = minCellNixers > 1 ? `, from at least ${minCellNixers} different nixers` : '';
-  return `${located} located ${plural} so far — a cell shows up once ${minCellNixes} nixes land within about a kilometre${nixers}. Thinner data only shows as a roughly 11 km area.`;
+  return located
+    ? 'No bubble to draw for these nixes yet.'
+    : 'No located nixes in this range yet — the map appears with the first one.';
 }
 
 // First / middle / last axis labels, matching the old hand-rolled charts.
@@ -85,6 +83,11 @@ export default function Stats() {
   }, []);
 
   const chartTitle = { '1h': 'Nixes per hour', '6h': 'Nixes per 6 hours', '1d': 'Nixes per day' }[data?.bucket] || 'Nixes per day';
+  // Filtered to one nixer the distinct-nixer floor drops away, so the rule the
+  // note spells out has to follow the response, not a constant.
+  const solidRule = locs && (locs.minCellNixers > 1
+    ? `${locs.minCellNixes} nixes from ${locs.minCellNixers} different nixers`
+    : `${locs.minCellNixes} nixes`);
 
   const barData = (data?.perDay || []).map((p) => ({ ...p, label: fmtShortB(p.d, data.bucket) }));
   const lineData = (data?.cumulative || []).map((p) => ({ ...p, label: fmtShortB(p.d, data.bucket) }));
@@ -182,23 +185,13 @@ export default function Stats() {
 
             {locs?.cells.length ? (
               <>
-                <NixHeatmap cells={locs.cells} cellDegrees={locs.cellDegrees} />
-                <div className="loc-foot">
-                  <span className="loc-legend" aria-hidden="true">
-                    <span className="loc-legend-label">Fewer</span>
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <i key={i} style={{ background: heatColor((i + 1) / 5) }} />
-                    ))}
-                    <span className="loc-legend-label">More</span>
-                  </span>
-                  <p className="loc-note">
-                    Cells are about a kilometre wide and appear once
-                    {' '}{locs.minCellNixes} nixes back them
-                    {locs.minCellNixers > 1 ? `, from at least ${locs.minCellNixers} different nixers` : ''}
-                    . Thinner data still shows, but only as a roughly 11 km area.
-                    Individual positions are never shown.
-                  </p>
-                </div>
+                <NixMap cells={locs.cells} cellDegrees={locs.cellDegrees} />
+                <p className="loc-note">
+                  Each bubble is one area: the number is how many nixes landed there, and you can
+                  click one to see who nixed whom. A bubble is drawn dashed while it is only known
+                  to a roughly 11 km area, and solid once {solidRule} land within the same
+                  about-a-kilometre cell. Individual positions are never shown.
+                </p>
               </>
             ) : (
               <p className="empty">

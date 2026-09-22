@@ -179,18 +179,32 @@ test('the heatmap publishes thin cells coarsely instead of dropping them', () =>
   assert.equal(lone.nixers, 1);
   assert.equal(lone.degrees, 0.1, 'the fallback grid is ~11 km, an order of magnitude coarser');
   assert.equal(map.coarseCellDegrees, 0.1);
+  assert.equal(map.coarseMinCellNixes, 1, 'the coarse grid only needs one fix');
+
+  // Each cell names the nixes behind it, newest first.
+  assert.deepEqual(
+    cell.pairs.map((p) => `${p.nixer} nixed ${p.target}`),
+    ['Vera nixed Bob', 'Uwe nixed Bob', 'Wanda nixed Bob', 'Wanda nixed Bob', 'Wanda nixed Bob'],
+    'the office bubble lists who nixed whom in it',
+  );
+  assert.equal(cell.pairs[0].at.length > 0, true, 'each pair carries when it happened');
+  assert.deepEqual(lone.pairs.map((p) => p.nixer), ['Zoe', 'Zoe']);
 });
 
-test('a single located nix is still not a cell', () => {
+test('a lone fix shows as a coarse bubble, not a fine cell', () => {
   const zoe = q.userByNameCi.get('zoe');
   nix(zoe, user('Bob'), { lat: 48.137, lon: 11.576, accuracy: 25 });
 
   const map = locations.heatmap({ range: 'all' });
   assert.equal(
-    map.cells.some((c) => c.lat === 48.1),
+    map.cells.some((c) => c.degrees === 0.01 && c.lat === 48.1),
     false,
-    'one fix says too little to publish, even coarsely',
+    'one fix never passes the fine grid’s floor',
   );
+  const lone = map.cells.find((c) => c.lat === 48.1 && c.lon === 11.6);
+  assert.ok(lone, 'but it still shows, as a ~11 km area');
+  assert.equal(lone.n, 1);
+  assert.deepEqual(lone.pairs.map((p) => `${p.nixer} nixed ${p.target}`), ['Zoe nixed Bob']);
 });
 
 test('the heatmap can be filtered by nixer and by range', () => {
@@ -203,8 +217,9 @@ test('the heatmap can be filtered by nixer and by range', () => {
   // Backdate every fix out of the 7-day window.
   db.prepare("UPDATE nix_locations SET created_at = datetime('now', '-40 days')").run();
   const all = locations.heatmap({ range: 'all' });
-  assert.equal(all.cells.length, 2, 'the office cell plus the lone nixer\'s coarse one');
+  assert.equal(all.cells.length, 5, 'the office cell, the lone nixer\'s coarse one, and one per lone fix');
   assert.equal(all.cells[0].lat, 52.52, 'busiest cell first');
+  assert.deepEqual(all.cells[0].pairs.map((p) => p.nixer), ['Vera', 'Uwe', 'Wanda', 'Wanda', 'Wanda']);
   assert.equal(locations.heatmap({ range: '7d' }).cells.length, 0);
   assert.equal(locations.heatmap({ range: 'nonsense' }).range, '30d', 'unknown ranges fall back');
 });
@@ -242,8 +257,14 @@ test('POST /api/nix records the fix and the heatmap serves cells only', async ()
   assert.deepEqual(stored, { lat: 52.52, lon: 13.4 });
 
   const map = await (await fetch(`${baseUrl}/api/location/heatmap?range=all`)).json();
-  assert.deepEqual(map.cells.map((c) => [c.lat, c.lon]), [[52.52, 13.4], [50.9, 7]]);
-  assert.deepEqual(map.cells.map((c) => c.degrees), [0.01, 0.1]);
+  assert.deepEqual(
+    map.cells.map((c) => [c.lat, c.lon]),
+    [[52.52, 13.4], [50.9, 7], [48.1, 11.6], [50.1, 8.7]],
+    'busiest first, then the thinner areas',
+  );
+  assert.deepEqual(map.cells.map((c) => c.degrees), [0.01, 0.1, 0.1, 0.1]);
+  assert.deepEqual(map.cells[0].pairs[0].nixer, 'Alice', 'the newest nix in the cell is listed first');
+  assert.equal(map.cells[0].pairs[0].target, 'Bob');
   assert.equal(JSON.stringify(map).includes('52.5198'), false, 'no raw precision leaves the server');
 
   const denied = await fetch(`${baseUrl}/api/nix`, {
