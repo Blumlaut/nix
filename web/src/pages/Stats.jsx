@@ -39,6 +39,17 @@ const TOOLTIP_STYLE = {
   fontVariantNumeric: 'tabular-nums',
 };
 
+// The map's empty state. Two located nixes are not enough: a cell only
+// exists once the server's floor is met, so spell the floor out instead of
+// saying "not enough" next to a coverage line that says otherwise.
+function emptyMapText({ located, nixes, minCellNixes, minCellNixers }) {
+  if (!nixes) return 'No nixes in this range yet.';
+  if (!located) return 'No nixes in this range have a location yet.';
+  const plural = located === 1 ? 'nix' : 'nixes';
+  const nixers = minCellNixers > 1 ? `, from at least ${minCellNixers} different nixers` : '';
+  return `${located} located ${plural} so far — a cell shows up once ${minCellNixes} nixes land within about a kilometre${nixers}.`;
+}
+
 // First / middle / last axis labels, matching the old hand-rolled charts.
 function edgeLabels(items) {
   if (items.length === 1) return [items[0]];
@@ -190,9 +201,7 @@ export default function Stats() {
               </>
             ) : (
               <p className="empty">
-                {locs
-                  ? 'Not enough located nixes in this range yet.'
-                  : 'Loading…'}
+                {locs ? emptyMapText(locs) : 'Loading…'}
               </p>
             )}
           </div>

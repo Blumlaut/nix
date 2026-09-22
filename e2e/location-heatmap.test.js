@@ -182,7 +182,11 @@ test('the map says so when a range holds too little location data', withApp(asyn
 
   await page.goto(ctx.url + '/stats', { waitUntil: 'domcontentloaded' });
   await page.locator('#nix-map').waitFor({ timeout: 10_000 });
-  await page.getByText('Not enough located nixes in this range yet.').waitFor({ timeout: 10_000 });
+  await page.getByText(/2 located nixes so far/).waitFor({ timeout: 10_000 });
+  assert.match(
+    await page.locator('#nix-map .empty').textContent(),
+    /a cell shows up once 3 nixes land within about a kilometre, from at least 3 different nixers/,
+  );
   assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 0);
 }));
 
