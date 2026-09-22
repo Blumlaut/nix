@@ -129,15 +129,17 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
       body: JSON.stringify({
         range: url.searchParams.get('range'),
         cellDegrees: 0.01,
-        minCellNixes: 3,
-        minCellNixers: byUser ? 1 : 3,
+        coarseCellDegrees: 0.1,
+        minCellNixes: 2,
+        minCellNixers: byUser ? 1 : 2,
         located: byUser ? 3 : 12,
         nixes: 40,
         cells: byUser
-          ? [{ lat: 52.52, lon: 13.4, n: 3, nixers: 1 }]
+          ? [{ lat: 52.52, lon: 13.4, n: 3, nixers: 1, degrees: 0.01 }]
           : [
-            { lat: 52.52, lon: 13.4, n: 9, nixers: 4 },
-            { lat: 52.53, lon: 13.41, n: 3, nixers: 3 },
+            { lat: 52.52, lon: 13.4, n: 9, nixers: 4, degrees: 0.01 },
+            { lat: 52.53, lon: 13.41, n: 3, nixers: 3, degrees: 0.01 },
+            { lat: 53.5, lon: 10.0, n: 2, nixers: 1, degrees: 0.1 },
           ],
         users: [{ id: '2', name: 'Florian' }, { id: '3', name: 'Zoe' }],
       }),
@@ -148,9 +150,15 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   await page.locator('#nix-map .leaflet-container').waitFor({ timeout: 10_000 });
 
   assert.ok(heatUrls[0].includes('range=30d'), `map follows the page range: ${heatUrls[0]}`);
-  assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 2, 'one square per cell');
+  assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 3, 'one square per cell');
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
-  assert.match(await page.locator('#nix-map .loc-note').textContent(), /at least 3 different nixers/);
+  assert.match(await page.locator('#nix-map .loc-note').textContent(), /at least 2 different nixers/);
+  assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
+
+  // The coarse fallback cell is drawn at the size the server aggregated it at.
+  const widths = await page.locator('#nix-map path.leaflet-interactive')
+    .evaluateAll((paths) => paths.map((p) => p.getBoundingClientRect().width).sort((a, b) => a - b));
+  assert.ok(widths[2] > widths[1] * 5, `a ~11 km cell is far wider than a ~1 km one: ${widths}`);
 
   // The range toggle on the page drives the map too.
   await page.getByRole('button', { name: '90 days' }).click();
@@ -176,7 +184,7 @@ test('the map says so when a range holds too little location data', withApp(asyn
   await page.route('**/api/stats*', json(STATS));
   await page.route('**/api/me/nix-calendar', json({ map: {}, total: 0, end: '2025-01-31' }));
   await page.route('**/api/location/heatmap*', json({
-    range: '30d', cellDegrees: 0.01, minCellNixes: 3, minCellNixers: 3,
+    range: '30d', cellDegrees: 0.01, coarseCellDegrees: 0.1, minCellNixes: 2, minCellNixers: 2,
     located: 2, nixes: 40, cells: [], users: [],
   }));
 
@@ -185,7 +193,7 @@ test('the map says so when a range holds too little location data', withApp(asyn
   await page.getByText(/2 located nixes so far/).waitFor({ timeout: 10_000 });
   assert.match(
     await page.locator('#nix-map .empty').textContent(),
-    /a cell shows up once 3 nixes land within about a kilometre, from at least 3 different nixers/,
+    /a cell shows up once 2 nixes land within about a kilometre, from at least 2 different nixers/,
   );
   assert.strictEqual(await page.locator('#nix-map path.leaflet-interactive').count(), 0);
 }));

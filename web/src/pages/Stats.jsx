@@ -39,15 +39,15 @@ const TOOLTIP_STYLE = {
   fontVariantNumeric: 'tabular-nums',
 };
 
-// The map's empty state. Two located nixes are not enough: a cell only
-// exists once the server's floor is met, so spell the floor out instead of
-// saying "not enough" next to a coverage line that says otherwise.
+// The map's empty state. A cell only exists once the server's floor is met,
+// so spell the floor out instead of saying "not enough" next to a coverage
+// line that says otherwise.
 function emptyMapText({ located, nixes, minCellNixes, minCellNixers }) {
   if (!nixes) return 'No nixes in this range yet.';
   if (!located) return 'No nixes in this range have a location yet.';
   const plural = located === 1 ? 'nix' : 'nixes';
   const nixers = minCellNixers > 1 ? `, from at least ${minCellNixers} different nixers` : '';
-  return `${located} located ${plural} so far — a cell shows up once ${minCellNixes} nixes land within about a kilometre${nixers}.`;
+  return `${located} located ${plural} so far — a cell shows up once ${minCellNixes} nixes land within about a kilometre${nixers}. Thinner data only shows as a roughly 11 km area.`;
 }
 
 // First / middle / last axis labels, matching the old hand-rolled charts.
@@ -192,10 +192,11 @@ export default function Stats() {
                     <span className="loc-legend-label">More</span>
                   </span>
                   <p className="loc-note">
-                    Cells are about a kilometre wide and only appear once
+                    Cells are about a kilometre wide and appear once
                     {' '}{locs.minCellNixes} nixes back them
                     {locs.minCellNixers > 1 ? `, from at least ${locs.minCellNixers} different nixers` : ''}
-                    . Individual positions are never shown.
+                    . Thinner data still shows, but only as a roughly 11 km area.
+                    Individual positions are never shown.
                   </p>
                 </div>
               </>

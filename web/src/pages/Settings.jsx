@@ -185,7 +185,8 @@ export default function Settings() {
         <p className="push-desc">
           When you report a nix, this browser can attach where you were. Only your own position is
           stored — never the person you nixed — rounded to roughly 100 m. The heatmap on the
-          statistics page only ever shows cells of about a kilometre.
+          statistics page only ever shows cells of about a kilometre, or a roughly 11 km area when
+          too few nixers are behind one.
         </p>
         {loc && (
           <>

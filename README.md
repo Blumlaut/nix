@@ -83,6 +83,8 @@ denied, unavailable or too-imprecise fix never delays or rejects a nix.
 
 `nix_locations` keeps coordinates rounded to 3 decimals (~110 m) — the client
 never picks the precision — and the heatmap on the statistics page only ever
-serves ~1.1 km cells, and only when at least 3 nixes (from 3 distinct nixers,
-or 3 of one nixer's own when filtered to them) back a cell. The map draws
-those cells with Leaflet on OpenStreetMap raster tiles.
+serves ~1.1 km cells once at least 2 nixes from 2 distinct nixers back one (or
+2 of one nixer's own when filtered to them). Thinner data is not dropped: any
+cell with at least 2 nixes is also served on a ~11 km grid, so a lone nixer
+shows up as a rough area rather than not at all. The map draws those cells
+with Leaflet on OpenStreetMap raster tiles.
