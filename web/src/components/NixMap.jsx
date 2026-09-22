@@ -18,13 +18,11 @@ const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">Op
 const METRES_PER_DEGREE = 111320;
 const MIN_BUBBLE = 26;
 const MAX_BUBBLE = 56;
+// Density steps, styled in style.css off the theme's accent gradient.
+const LEVELS = 5;
 
-// Low → high density. Chosen to read on both themes.
-const RAMP = ['#4a9eff', '#22d3ee', '#51cf66', '#fbbf24', '#ef4444'];
-
-function heatColor(t) {
-  const i = Math.min(RAMP.length - 1, Math.max(0, Math.floor(t * RAMP.length)));
-  return RAMP[i];
+function level(t) {
+  return Math.min(LEVELS - 1, Math.max(0, Math.round(t * (LEVELS - 1))));
 }
 
 function bubblePx(n, max) {
@@ -107,8 +105,8 @@ export default function NixMap({ cells, cellDegrees = 0.01 }) {
       const coarse = (cell.degrees || cellDegrees) > cellDegrees;
       const t = Math.sqrt(cell.n / max);
       const icon = L.divIcon({
-        className: `nix-bubble${coarse ? ' is-coarse' : ''}`,
-        html: `<span style="width:${size}px;height:${size}px;background:${heatColor(t)}">${cell.n}</span>`,
+        className: `nix-bubble lvl-${level(t)}${coarse ? ' is-coarse' : ''}`,
+        html: `<span style="width:${size}px;height:${size}px">${cell.n}</span>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });

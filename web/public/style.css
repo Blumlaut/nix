@@ -749,19 +749,34 @@ input::placeholder { color: var(--placeholder); }
 @media (max-width: 720px) { .nix-map { height: 280px; } }
 
 /* One bubble per published cell: the count is the label, the size is the
-   volume. A dashed ring means the server could only round it to ~11 km. */
-.nix-bubble { background: none; border: none; }
-.nix-bubble span {
+   volume, and the fill slides along the theme's accent gradient as the cell
+   fills up (lvl-0 = accent, lvl-4 = accent-2). A dashed ring means the server
+   could only round it to ~11 km. Scoped to .nix-map so the rules outrank
+   leaflet.css's .leaflet-div-icon (white box + grey border on every icon). */
+.nix-map .nix-bubble { background: none; border: none; }
+.nix-map .nix-bubble span {
   display: flex; align-items: center; justify-content: center;
   box-sizing: border-box; border: 2px solid transparent; border-radius: 50%;
-  color: #fff; font-size: .82rem; font-weight: 600;
+  background: var(--grad-accent);
+  background-size: 300% 100%;
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: .82rem; font-weight: 700;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 2px rgb(0 0 0 / .5);
-  box-shadow: 0 1px 4px rgb(0 0 0 / .35);
-  transition: transform .15s ease;
+  box-shadow: 0 0 0 1px var(--ring-soft), 0 6px 18px -6px rgb(var(--ink-rgb) / .5);
+  transition: transform .15s ease, box-shadow .18s ease, background-position .25s ease;
 }
-.nix-bubble:hover span { transform: scale(1.08); }
-.nix-bubble.is-coarse span { border-style: dashed; border-color: rgb(255 255 255 / .85); }
+/* Density = how far the window sits along accent → accent-2 (same ramp the
+   brand mark and the primary button use). */
+.nix-map .nix-bubble.lvl-0 span { background-position: 0% 0; }
+.nix-map .nix-bubble.lvl-1 span { background-position: 25% 0; }
+.nix-map .nix-bubble.lvl-2 span { background-position: 50% 0; }
+.nix-map .nix-bubble.lvl-3 span { background-position: 75% 0; }
+.nix-map .nix-bubble.lvl-4 span { background-position: 100% 0; }
+@media (hover: hover) {
+  .nix-map .nix-bubble:hover span { transform: scale(1.07); box-shadow: var(--glow); }
+}
+.nix-map .nix-bubble.is-coarse span { border-style: dashed; border-color: var(--accent-ink); }
 
 .nix-pop { min-width: 190px; font-size: .78rem; }
 .nix-pop strong { display: block; margin-bottom: 6px; }

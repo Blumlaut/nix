@@ -172,6 +172,15 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
     'every bubble is labelled with its nix count',
   );
   assert.strictEqual(await page.locator('#nix-map .nix-bubble.is-coarse').count(), 1, 'the ~11 km cell is drawn dashed');
+  // Bubbles are painted from the theme's accent ramp, not fixed hexes, and
+  // leaflet's default white div-icon box is styled away.
+  assert.strictEqual(await page.locator('#nix-map .nix-bubble.lvl-4').count(), 1, 'the busiest cell takes the top density step');
+  const bubblePaint = await bubbles.first().evaluate((el) => {
+    const span = el.querySelector('span');
+    return { box: getComputedStyle(el).backgroundColor, fill: getComputedStyle(span).backgroundImage };
+  });
+  assert.ok(/^rgba?\(0, 0, 0, 0\)$/.test(bubblePaint.box), `bubble icon box stays clear: ${bubblePaint.box}`);
+  assert.match(bubblePaint.fill, /linear-gradient/, 'bubble fill follows the theme accent gradient');
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /click one to see who nixed whom/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
