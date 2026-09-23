@@ -215,7 +215,9 @@ export default function NixMap({ cells, cellDegrees = 0.01 }) {
   }, []);
 
   useEffect(() => {
-    const instance = L.map(container.current, { scrollWheelZoom: false });
+    // The wheel zooms the map it points at rather than the page behind it
+    // (#19); the +/− control and keyboard keep working alongside it.
+    const instance = L.map(container.current, { scrollWheelZoom: true });
     L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(instance);
     map.current = instance;
     layer.current = L.layerGroup().addTo(instance);

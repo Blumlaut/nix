@@ -335,3 +335,81 @@ test('cells sharing a centre stay one pin and list both areas', withApp(async (c
   await popup.getByText('4 nixes · 2 nixers · ~1 km area').waitFor({ timeout: 5_000 });
   assert.match(await popup.textContent(), /2 nixes · 1 nixer · ~11 km area/, 'both areas stay reachable');
 }));
+
+test('the wheel zooms the map it points at, not the page behind it (#19)', withApp(async (ctx) => {
+  const page = await ctx.newPage({ width: 1280, height: 600 });
+  const json = (body) => (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+
+  await page.route('**/auth/discord*', (route) => route.abort());
+  await page.route('**/api/me', json(ME));
+  await page.route('**/api/xp', json({ level: 7 }));
+  await page.route('**/api/nemesis', json({ nemesisId: null }));
+  await page.route('**/api/stats*', json(STATS));
+  await page.route('**/api/me/nix-calendar', json({ map: {}, total: 0, end: '2025-01-31' }));
+  await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: TILE }));
+  // Two cells far enough apart to land on a mid zoom, so the wheel has room
+  // both ways.
+  await page.route('**/api/location/heatmap*', json({
+    range: '30d', cellDegrees: 0.01, coarseCellDegrees: 0.1,
+    minCellNixes: 2, minCellNixers: 2, coarseMinCellNixes: 1,
+    located: 11, nixes: 40,
+    cells: [
+      { lat: 52.52, lon: 13.4, n: 9, nixers: 4, degrees: 0.01, pairs: [] },
+      { lat: 53.5, lon: 10.0, n: 2, nixers: 1, degrees: 0.1, pairs: [] },
+    ],
+    users: [],
+  }));
+
+  await page.goto(ctx.url + '/stats', { waitUntil: 'domcontentloaded' });
+  const container = page.locator('#nix-map .leaflet-container');
+  await container.waitFor({ timeout: 10_000 });
+  await page.locator('#nix-map .nix-pin').first().waitFor({ timeout: 10_000 });
+
+  // Park the map below the sticky header, on a page long enough to scroll.
+  await page.evaluate(() => {
+    const el = document.querySelector('#nix-map .leaflet-container');
+    window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 80);
+  });
+  const top = await page.evaluate(() => window.scrollY);
+  assert.ok(
+    await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 100),
+    'the statistics page is long enough that a wheel would move it',
+  );
+
+  // The zoom the tiles in the DOM were fetched at is the only trace the page
+  // carries of how far the map is zoomed: the map shows no readout.
+  const start = await page.evaluate(() => Math.max(...[
+    ...document.querySelectorAll('#nix-map img.leaflet-tile'),
+  ].map((img) => Number(img.src.match(/tile\.openstreetmap\.org\/(\d+)\//)[1]))));
+  assert.ok(start >= 0, `the map painted tiles to begin with: ${start}`);
+
+  // Wait for a tile from a shallower or deeper zoom than the map started on.
+  const tilesBeyond = (dir) => page.waitForFunction(({ start, dir }) => [
+    ...document.querySelectorAll('#nix-map img.leaflet-tile'),
+  ].some((img) => {
+    const m = img.src.match(/tile\.openstreetmap\.org\/(\d+)\//);
+    if (!m) return false;
+    return dir === 'in' ? Number(m[1]) > start : Number(m[1]) < start;
+  }), { start, dir }, { timeout: 5_000 });
+
+  const box = await container.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+  // A turn of the wheel over the map zooms it in…
+  await page.mouse.wheel(0, -120);
+  await tilesBeyond('in');
+  // …and leaves the page it sits in where it was.
+  assert.strictEqual(await page.evaluate(() => window.scrollY), top, 'the wheel over the map does not scroll the page');
+
+  // Wheeling the other way zooms back out, past where it started: the first
+  // step back reuses tiles the map already holds, so it takes two turns.
+  await page.mouse.wheel(0, 240);
+  await page.mouse.wheel(0, 240);
+  await tilesBeyond('out');
+  assert.strictEqual(await page.evaluate(() => window.scrollY), top, 'zooming back out does not scroll the page either');
+
+  // Off the map the wheel scrolls the page as usual.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 40);
+  await page.mouse.wheel(0, 200);
+  await page.waitForFunction((y) => window.scrollY > y, top, { timeout: 5_000 });
+}));
