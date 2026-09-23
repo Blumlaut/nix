@@ -165,16 +165,25 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
 
   assert.ok(heatUrls[0].includes('range=30d'), `map follows the page range: ${heatUrls[0]}`);
   const pins = page.locator('#nix-map .nix-pin');
-  assert.strictEqual(await pins.count(), 3, 'one pin per cell');
+  const clusters = page.locator('#nix-map .nix-pin.is-cluster');
+  // Zoomed out, the two Berlin cells sit far closer than a pin is wide, so
+  // they share one pin; Munich stands on its own.
+  assert.strictEqual(await pins.count(), 2, 'cells that close together share a pin');
+  assert.strictEqual(await clusters.count(), 1, 'the two Berlin cells are the merged ones');
   assert.deepStrictEqual(
     (await pins.allTextContents()).sort(),
-    ['2', '3', '9'],
-    'every pin is labelled with its nix count',
+    ['12', '2'],
+    'a merged pin counts every nix behind it',
   );
   assert.strictEqual(await page.locator('#nix-map .nix-pin.is-coarse').count(), 1, 'the ~11 km cell gets the dashed outline');
   // Pins are painted from the theme's accent ramp, not fixed hexes, and
   // leaflet's default white div-icon box is styled away.
-  assert.strictEqual(await page.locator('#nix-map .nix-pin.lvl-4').count(), 1, 'the busiest cell takes the top density step');
+  assert.strictEqual(await page.locator('#nix-map .nix-pin.lvl-4').count(), 1, 'the busiest pin takes the top density step');
+  assert.match(
+    await clusters.locator('span b').evaluate((el) => getComputedStyle(el).maskImage),
+    /^url\("data:image\/svg\+xml/,
+    'a merged pin wears its own ring',
+  );
   const pinPaint = await pins.first().evaluate((el) => {
     const span = el.querySelector('span');
     const body = getComputedStyle(span, '::before');
@@ -195,7 +204,10 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   assert.match(pinPaint.mask, /^url\("data:image\/svg\+xml/, `the fill is clipped to a pin shape: ${pinPaint.mask}`);
   assert.match(pinPaint.ring, /^url\("data:image\/svg\+xml/);
   assert.notStrictEqual(pinPaint.ring, pinPaint.mask, 'the coarse outline is its own dashed shape');
-  assert.ok(pinPaint.h >= 24 && pinPaint.h <= 40, `pins stay small: ${pinPaint.h}px tall`);
+  assert.ok(pinPaint.h >= 24 && pinPaint.h <= 44, `pins stay small: ${pinPaint.h}px tall`);
+  const loneH = await page.locator('#nix-map .nix-pin:not(.is-cluster) span')
+    .evaluate((span) => parseFloat(span.style.height));
+  assert.ok(loneH >= 24 && loneH <= 40, `a single-area pin keeps to the normal size: ${loneH}px tall`);
   assert.ok(pinPaint.w < pinPaint.h, `a pin is taller than it is wide: ${pinPaint.w}x${pinPaint.h}`);
   // The count sits on the head, 35% down the pin's box.
   assert.ok(Math.abs(pinPaint.labelTop / pinPaint.h - 0.35) < 0.02,
@@ -203,6 +215,18 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /click one to see who nixed whom/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
+
+  // Clicking a merged pin zooms to the level where its areas split apart…
+  await clusters.click();
+  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-pin.is-cluster').length === 0);
+  assert.strictEqual(await pins.count(), 3, 'zooming in spreads the merged cells apart again');
+  assert.deepStrictEqual((await pins.allTextContents()).sort(), ['2', '3', '9']);
+  // …and one step back out gathers them up again.
+  await page.locator('#nix-map .leaflet-control-zoom-out').click();
+  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-pin.is-cluster').length === 1);
+  assert.strictEqual(await pins.count(), 2, 'zooming out merges them back into one pin');
+  await clusters.click();
+  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-pin.is-cluster').length === 0);
 
   // A pin's popup lists who nixed whom in that area.
   await pins.filter({ hasText: '9' }).click();
@@ -221,6 +245,7 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   await page.locator('#loc-user').click();
   await page.getByRole('option', { name: 'Zoe' }).click();
   await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-pin').length === 1);
+  assert.strictEqual(await clusters.count(), 0, 'a lone cell is never a merged pin');
   assert.ok(heatUrls.some((s) => s.includes('user=3')), `nixer filter refetches: ${heatUrls.join(' ')}`);
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /3 of 40 nixes/);
 }));
@@ -271,4 +296,42 @@ test('the settings switch turns recording off and on again', withApp(async (ctx)
   await card.locator('input[type="checkbox"]').click();
   assert.deepStrictEqual(posted, { enabled: false });
   await card.getByText('Location recording is off').waitFor({ timeout: 10_000 });
+}));
+
+test('cells sharing a centre stay one pin and list both areas', withApp(async (ctx) => {
+  const page = await ctx.newPage({ width: 1280, height: 1000 });
+  const json = (body) => (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+
+  await page.route('**/auth/discord*', (route) => route.abort());
+  await page.route('**/api/me', json(ME));
+  await page.route('**/api/xp', json({ level: 7 }));
+  await page.route('**/api/nemesis', json({ nemesisId: null }));
+  await page.route('**/api/stats*', json(STATS));
+  await page.route('**/api/me/nix-calendar', json({ map: {}, total: 0, end: '2025-01-31' }));
+  await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: TILE }));
+  // A ~1 km cell sitting exactly on the ~11 km cell around it: no zoom can
+  // tell those two apart, so the pin must stay merged and keep both reachable.
+  await page.route('**/api/location/heatmap*', json({
+    range: '30d', cellDegrees: 0.01, coarseCellDegrees: 0.1,
+    minCellNixes: 2, minCellNixers: 2, coarseMinCellNixes: 1,
+    located: 6, nixes: 40,
+    cells: [
+      { lat: 52.5, lon: 13.4, n: 4, nixers: 2, degrees: 0.01, pairs: [] },
+      { lat: 52.5, lon: 13.4, n: 2, nixers: 1, degrees: 0.1, pairs: [] },
+    ],
+    users: [],
+  }));
+
+  await page.goto(ctx.url + '/stats', { waitUntil: 'domcontentloaded' });
+  await page.locator('#nix-map .leaflet-container').waitFor({ timeout: 10_000 });
+
+  const merged = page.locator('#nix-map .nix-pin.is-cluster');
+  await merged.waitFor({ timeout: 10_000 });
+  assert.strictEqual(await page.locator('#nix-map .nix-pin').count(), 1, 'overlapping cells share a pin');
+  assert.strictEqual(await merged.textContent(), '6', 'the merged pin counts both areas');
+
+  await merged.click();
+  const popup = page.locator('#nix-map .leaflet-popup-content');
+  await popup.getByText('4 nixes · 2 nixers · ~1 km area').waitFor({ timeout: 5_000 });
+  assert.match(await popup.textContent(), /2 nixes · 1 nixer · ~11 km area/, 'both areas stay reachable');
 }));

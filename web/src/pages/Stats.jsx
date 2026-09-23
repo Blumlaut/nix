@@ -188,9 +188,11 @@ export default function Stats() {
                 <NixMap cells={locs.cells} cellDegrees={locs.cellDegrees} />
                 <p className="loc-note">
                   Each pin is one area: the number is how many nixes landed there, and you can
-                  click one to see who nixed whom. A pin is drawn dashed while it is only known
-                  to a roughly 11 km area, and solid once {solidRule} land within the same
-                  about-a-kilometre cell. Individual positions are never shown.
+                  click one to see who nixed whom. Pins closer together than a pin is wide merge
+                  into a single pin while zoomed out — click it, or zoom in, to split them apart
+                  again. A pin is drawn dashed while it is only known to a roughly 11 km area, and
+                  solid once {solidRule} land within the same about-a-kilometre cell. Individual
+                  positions are never shown.
                 </p>
               </>
             ) : (

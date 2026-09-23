@@ -759,6 +759,9 @@ input::placeholder { color: var(--placeholder); }
 .nix-map .nix-pin span {
   --pin-fill: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='5%202%2014%2020'%20preserveAspectRatio='none'%3E%3Cpath%20d='M12%202C8.13%202%205%205.13%205%209c0%205.25%207%2013%207%2013s7-7.75%207-13c0-3.87-3.13-7-7-7z'%20fill='%23000'/%3E%3C/svg%3E");
   --pin-ring: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='5%202%2014%2020'%20preserveAspectRatio='none'%3E%3Cg%20transform='translate(12%2012)%20scale(.88)%20translate(-12%20-12)'%3E%3Cpath%20d='M12%202C8.13%202%205%205.13%205%209c0%205.25%207%2013%207%2013s7-7.75%207-13c0-3.87-3.13-7-7-7z'%20fill='none'%20stroke='%23000'%20stroke-width='1'%20stroke-dasharray='2.4%202.4'/%3E%3C/g%3E%3C/svg%3E");
+  /* The same outline, unbroken: what a merged pin (several areas in one)
+     wears, so it is told apart from the dashed ~11 km areas. */
+  --pin-edge: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='5%202%2014%2020'%20preserveAspectRatio='none'%3E%3Cg%20transform='translate(12%2012)%20scale(.88)%20translate(-12%20-12)'%3E%3Cpath%20d='M12%202C8.13%202%205%205.13%205%209c0%205.25%207%2013%207%2013s7-7.75%207-13c0-3.87-3.13-7-7-7z'%20fill='none'%20stroke='%23000'%20stroke-width='1'/%3E%3C/g%3E%3C/svg%3E");
   position: relative; display: block;
   filter: drop-shadow(0 3px 5px rgb(var(--ink-rgb) / .4));
   transition: transform .15s ease, filter .18s ease;
@@ -806,7 +809,18 @@ input::placeholder { color: var(--placeholder); }
   pointer-events: none;
 }
 
+/* Merged pins (nearby areas sharing one pin while zoomed out) carry a solid
+   ring around the head. */
+.nix-map .nix-pin.is-cluster span b {
+  position: absolute; inset: 0;
+  background: var(--accent-ink);
+  -webkit-mask: var(--pin-edge) center/100% 100% no-repeat;
+  mask: var(--pin-edge) center/100% 100% no-repeat;
+  pointer-events: none;
+}
+
 .nix-pop { min-width: 190px; font-size: .78rem; }
+.nix-pop-area + .nix-pop-area { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .nix-pop strong { display: block; margin-bottom: 6px; }
 .nix-pop ul { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; }
 .nix-pop li { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
