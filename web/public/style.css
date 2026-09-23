@@ -748,43 +748,63 @@ input::placeholder { color: var(--placeholder); }
 .nix-map .leaflet-popup-close-button { color: var(--text-2); }
 @media (max-width: 720px) { .nix-map { height: 280px; } }
 
-/* One pin per published cell: the tip sits on the cell, the count is the
-   label in the head, the size is the volume, and the fill slides along the
-   theme's accent gradient as the cell fills up (lvl-0 = accent, lvl-4 =
-   accent-2). A dashed outline means the server could only round it to ~11 km.
-   The teardrop is the square head rotated 45° so its sharp corner (bottom
-   left) points down at the cell; the label is rotated back so it stays
-   upright. Scoped to .nix-map so the rules outrank leaflet.css's
-   .leaflet-div-icon (white box + grey border on every icon). */
+/* One pin per published cell: a map pin (teardrop) whose tip sits on the
+   cell, with the nix count in the head and the size following the volume. The
+   fill slides along the theme's accent gradient as the cell fills up (lvl-0 =
+   accent, lvl-4 = accent-2). The silhouette is a masked background so the
+   markup stays a plain span, and it is scoped to .nix-map so the rules
+   outrank leaflet.css's .leaflet-div-icon (white box + grey border on every
+   icon). */
 .nix-map .nix-pin { background: none; border: none; }
 .nix-map .nix-pin span {
-  display: flex; align-items: center; justify-content: center;
-  box-sizing: border-box; border: 2px solid transparent; border-radius: 50% 50% 50% 0;
+  --pin-fill: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='5%202%2014%2020'%20preserveAspectRatio='none'%3E%3Cpath%20d='M12%202C8.13%202%205%205.13%205%209c0%205.25%207%2013%207%2013s7-7.75%207-13c0-3.87-3.13-7-7-7z'%20fill='%23000'/%3E%3C/svg%3E");
+  --pin-ring: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='5%202%2014%2020'%20preserveAspectRatio='none'%3E%3Cg%20transform='translate(12%2012)%20scale(.88)%20translate(-12%20-12)'%3E%3Cpath%20d='M12%202C8.13%202%205%205.13%205%209c0%205.25%207%2013%207%2013s7-7.75%207-13c0-3.87-3.13-7-7-7z'%20fill='none'%20stroke='%23000'%20stroke-width='1'%20stroke-dasharray='2.4%202.4'/%3E%3C/g%3E%3C/svg%3E");
+  position: relative; display: block;
+  filter: drop-shadow(0 3px 5px rgb(var(--ink-rgb) / .4));
+  transition: transform .15s ease, filter .18s ease;
+}
+/* The filled body: the theme gradient clipped to the pin's silhouette. */
+.nix-map .nix-pin span::before {
+  content: ''; position: absolute; inset: 0;
   background: var(--grad-accent);
   background-size: 300% 100%;
-  transform: rotate(-45deg);
-  box-shadow: 0 0 0 1px var(--ring-soft), 0 6px 18px -6px rgb(var(--ink-rgb) / .5);
-  transition: transform .15s ease, box-shadow .18s ease, background-position .25s ease;
+  -webkit-mask: var(--pin-fill) center/100% 100% no-repeat;
+  mask: var(--pin-fill) center/100% 100% no-repeat;
+  transition: background-position .25s ease;
 }
+/* The count, centred on the head — 35% down the mask's 14:20 viewBox. */
 .nix-map .nix-pin span i {
-  font-style: normal;
-  transform: rotate(45deg);
+  position: absolute; left: 0; right: 0; top: 35%;
+  transform: translateY(-50%);
+  text-align: center; font-style: normal; line-height: 1;
   color: var(--accent-ink);
   font-family: var(--font-display);
-  font-size: .82rem; font-weight: 700;
+  font-size: calc(var(--pin-h, 24px) * .3);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 /* Density = how far the window sits along accent → accent-2 (same ramp the
    brand mark and the primary button use). */
-.nix-map .nix-pin.lvl-0 span { background-position: 0% 0; }
-.nix-map .nix-pin.lvl-1 span { background-position: 25% 0; }
-.nix-map .nix-pin.lvl-2 span { background-position: 50% 0; }
-.nix-map .nix-pin.lvl-3 span { background-position: 75% 0; }
-.nix-map .nix-pin.lvl-4 span { background-position: 100% 0; }
+.nix-map .nix-pin.lvl-0 span::before { background-position: 0% 0; }
+.nix-map .nix-pin.lvl-1 span::before { background-position: 25% 0; }
+.nix-map .nix-pin.lvl-2 span::before { background-position: 50% 0; }
+.nix-map .nix-pin.lvl-3 span::before { background-position: 75% 0; }
+.nix-map .nix-pin.lvl-4 span::before { background-position: 100% 0; }
 @media (hover: hover) {
-  .nix-map .nix-pin:hover span { transform: rotate(-45deg) scale(1.07); box-shadow: var(--glow); }
+  .nix-map .nix-pin:hover span {
+    transform: scale(1.08);
+    filter: drop-shadow(0 5px 9px rgb(var(--ink-rgb) / .55));
+  }
 }
-.nix-map .nix-pin.is-coarse span { border-style: dashed; border-color: var(--accent-ink); }
+/* ~11 km areas get a dashed outline drawn on top of the fill. */
+.nix-map .nix-pin.is-coarse span::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--accent-ink);
+  -webkit-mask: var(--pin-ring) center/100% 100% no-repeat;
+  mask: var(--pin-ring) center/100% 100% no-repeat;
+  pointer-events: none;
+}
 
 .nix-pop { min-width: 190px; font-size: .78rem; }
 .nix-pop strong { display: block; margin-bottom: 6px; }

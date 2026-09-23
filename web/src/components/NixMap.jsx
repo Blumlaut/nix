@@ -5,24 +5,24 @@ import 'leaflet/dist/leaflet.css';
 /**
  * Where nixes happen (#13).
  *
- * One pin per aggregated cell: the tip sits on the cell, the number in the
- * head is how many nixes landed there, and the pin grows with it. The client
- * never sees a single position — the server only ever hands over cells.
- * Clicking a pin lists who nixed whom inside it. Thin data (down to a lone
- * fix) is published as a ~11 km area, which is why such pins are dashed.
+ * One pin per aggregated cell: a map pin whose tip sits on the cell, with the
+ * count in the head, growing with the number of nixes. The client never sees a
+ * single position — the server only ever hands over cells. Clicking a pin
+ * lists who nixed whom inside it. Thin data (down to a lone fix) is published
+ * as a ~11 km area, which is why such pins carry a dashed outline.
  */
 
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 // Metres per degree of latitude — close enough to name a cell's size.
 const METRES_PER_DEGREE = 111320;
-const MIN_PIN = 26;
-const MAX_PIN = 56;
+// Pin height in px (the mask in style.css is 14:20, so a pin is taller than
+// wide and reads as a pin rather than a dot).
+const MIN_PIN = 24;
+const MAX_PIN = 40;
+const PIN_RATIO = 0.7;
 // Density steps, styled in style.css off the theme's accent gradient.
 const LEVELS = 5;
-// The head is a square with three rounded corners, rotated 45°, so the sharp
-// fourth corner becomes the tip: 1/√2 of the box sits below the head's centre.
-const TIP_RATIO = Math.SQRT1_2;
 
 function level(t) {
   return Math.min(LEVELS - 1, Math.max(0, Math.round(t * (LEVELS - 1))));
@@ -30,6 +30,12 @@ function level(t) {
 
 function pinPx(n, max) {
   return Math.round(MIN_PIN + Math.sqrt(n / max) * (MAX_PIN - MIN_PIN));
+}
+
+/** The pin's box, in px: height from the count, width from the mask's ratio. */
+function pinBox(n, max) {
+  const h = pinPx(n, max);
+  return { w: Math.round(h * PIN_RATIO), h };
 }
 
 /**
@@ -104,14 +110,15 @@ export default function NixMap({ cells, cellDegrees = 0.01 }) {
     const bounds = L.latLngBounds([]);
 
     for (const cell of cells) {
-      const size = pinPx(cell.n, max);
+      const { w, h } = pinBox(cell.n, max);
       const coarse = (cell.degrees || cellDegrees) > cellDegrees;
       const t = Math.sqrt(cell.n / max);
       const icon = L.divIcon({
         className: `nix-pin lvl-${level(t)}${coarse ? ' is-coarse' : ''}`,
-        html: `<span style="width:${size}px;height:${size}px"><i>${cell.n}</i></span>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, Math.round(size / 2 + size * TIP_RATIO)],
+        html: `<span style="width:${w}px;height:${h}px;--pin-h:${h}px"><i>${cell.n}</i></span>`,
+        iconSize: [w, h],
+        // The mask's tip is the bottom centre of the box, which is the cell.
+        iconAnchor: [Math.round(w / 2), h],
       });
       L.marker([cell.lat, cell.lon], { icon, title: `${cell.n} nixes here` })
         .bindPopup(() => popupNode(cell), { minWidth: 200 })

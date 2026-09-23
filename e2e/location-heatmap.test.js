@@ -171,30 +171,35 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
     ['2', '3', '9'],
     'every pin is labelled with its nix count',
   );
-  assert.strictEqual(await page.locator('#nix-map .nix-pin.is-coarse').count(), 1, 'the ~11 km cell is drawn dashed');
+  assert.strictEqual(await page.locator('#nix-map .nix-pin.is-coarse').count(), 1, 'the ~11 km cell gets the dashed outline');
   // Pins are painted from the theme's accent ramp, not fixed hexes, and
   // leaflet's default white div-icon box is styled away.
   assert.strictEqual(await page.locator('#nix-map .nix-pin.lvl-4').count(), 1, 'the busiest cell takes the top density step');
   const pinPaint = await pins.first().evaluate((el) => {
     const span = el.querySelector('span');
-    const matrix = (node) => getComputedStyle(node).transform.match(/-?[\d.]+/g).map(Number);
+    const body = getComputedStyle(span, '::before');
+    const label = getComputedStyle(span.querySelector('i'));
     return {
       box: getComputedStyle(el).backgroundColor,
-      fill: getComputedStyle(span).backgroundImage,
-      radius: getComputedStyle(span).borderRadius,
-      pin: matrix(span),
-      label: matrix(span.querySelector('i')),
+      fill: body.backgroundImage,
+      mask: body.maskImage || body.webkitMaskImage,
+      ring: getComputedStyle(document.querySelector('#nix-map .nix-pin.is-coarse span'), '::after').maskImage,
+      w: parseFloat(span.style.width),
+      h: parseFloat(span.style.height),
+      labelTop: parseFloat(label.top),
     };
   });
   assert.ok(/^rgba?\(0, 0, 0, 0\)$/.test(pinPaint.box), `pin icon box stays clear: ${pinPaint.box}`);
   assert.match(pinPaint.fill, /linear-gradient/, 'pin fill follows the theme accent gradient');
-  assert.match(pinPaint.radius, /^50% 50% 50% 0px$/, `the head is a teardrop: ${pinPaint.radius}`);
-  // Rotated 45° so the sharp corner points down at the cell; the label is
-  // rotated back the other way, so the count reads upright.
-  assert.ok(Math.abs(pinPaint.pin[0] - Math.SQRT1_2) < 1e-3 && Math.abs(pinPaint.pin[1] + Math.SQRT1_2) < 1e-3,
-    `the pin is rotated a quarter turn: ${pinPaint.pin}`);
-  assert.ok(Math.abs(pinPaint.label[1] + pinPaint.pin[1]) < 1e-3,
-    `the label counter-rotates: ${pinPaint.label}`);
+  // The silhouette is a masked map-pin path, not a border-radius box.
+  assert.match(pinPaint.mask, /^url\("data:image\/svg\+xml/, `the fill is clipped to a pin shape: ${pinPaint.mask}`);
+  assert.match(pinPaint.ring, /^url\("data:image\/svg\+xml/);
+  assert.notStrictEqual(pinPaint.ring, pinPaint.mask, 'the coarse outline is its own dashed shape');
+  assert.ok(pinPaint.h >= 24 && pinPaint.h <= 40, `pins stay small: ${pinPaint.h}px tall`);
+  assert.ok(pinPaint.w < pinPaint.h, `a pin is taller than it is wide: ${pinPaint.w}x${pinPaint.h}`);
+  // The count sits on the head, 35% down the pin's box.
+  assert.ok(Math.abs(pinPaint.labelTop / pinPaint.h - 0.35) < 0.02,
+    `the label is centred on the head: ${pinPaint.labelTop} of ${pinPaint.h}`);
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /click one to see who nixed whom/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
