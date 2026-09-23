@@ -164,29 +164,43 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
   await page.locator('#nix-map .leaflet-container').waitFor({ timeout: 10_000 });
 
   assert.ok(heatUrls[0].includes('range=30d'), `map follows the page range: ${heatUrls[0]}`);
-  const bubbles = page.locator('#nix-map .nix-bubble');
-  assert.strictEqual(await bubbles.count(), 3, 'one bubble per cell');
+  const pins = page.locator('#nix-map .nix-pin');
+  assert.strictEqual(await pins.count(), 3, 'one pin per cell');
   assert.deepStrictEqual(
-    (await bubbles.allTextContents()).sort(),
+    (await pins.allTextContents()).sort(),
     ['2', '3', '9'],
-    'every bubble is labelled with its nix count',
+    'every pin is labelled with its nix count',
   );
-  assert.strictEqual(await page.locator('#nix-map .nix-bubble.is-coarse').count(), 1, 'the ~11 km cell is drawn dashed');
-  // Bubbles are painted from the theme's accent ramp, not fixed hexes, and
+  assert.strictEqual(await page.locator('#nix-map .nix-pin.is-coarse').count(), 1, 'the ~11 km cell is drawn dashed');
+  // Pins are painted from the theme's accent ramp, not fixed hexes, and
   // leaflet's default white div-icon box is styled away.
-  assert.strictEqual(await page.locator('#nix-map .nix-bubble.lvl-4').count(), 1, 'the busiest cell takes the top density step');
-  const bubblePaint = await bubbles.first().evaluate((el) => {
+  assert.strictEqual(await page.locator('#nix-map .nix-pin.lvl-4').count(), 1, 'the busiest cell takes the top density step');
+  const pinPaint = await pins.first().evaluate((el) => {
     const span = el.querySelector('span');
-    return { box: getComputedStyle(el).backgroundColor, fill: getComputedStyle(span).backgroundImage };
+    const matrix = (node) => getComputedStyle(node).transform.match(/-?[\d.]+/g).map(Number);
+    return {
+      box: getComputedStyle(el).backgroundColor,
+      fill: getComputedStyle(span).backgroundImage,
+      radius: getComputedStyle(span).borderRadius,
+      pin: matrix(span),
+      label: matrix(span.querySelector('i')),
+    };
   });
-  assert.ok(/^rgba?\(0, 0, 0, 0\)$/.test(bubblePaint.box), `bubble icon box stays clear: ${bubblePaint.box}`);
-  assert.match(bubblePaint.fill, /linear-gradient/, 'bubble fill follows the theme accent gradient');
+  assert.ok(/^rgba?\(0, 0, 0, 0\)$/.test(pinPaint.box), `pin icon box stays clear: ${pinPaint.box}`);
+  assert.match(pinPaint.fill, /linear-gradient/, 'pin fill follows the theme accent gradient');
+  assert.match(pinPaint.radius, /^50% 50% 50% 0px$/, `the head is a teardrop: ${pinPaint.radius}`);
+  // Rotated 45° so the sharp corner points down at the cell; the label is
+  // rotated back the other way, so the count reads upright.
+  assert.ok(Math.abs(pinPaint.pin[0] - Math.SQRT1_2) < 1e-3 && Math.abs(pinPaint.pin[1] + Math.SQRT1_2) < 1e-3,
+    `the pin is rotated a quarter turn: ${pinPaint.pin}`);
+  assert.ok(Math.abs(pinPaint.label[1] + pinPaint.pin[1]) < 1e-3,
+    `the label counter-rotates: ${pinPaint.label}`);
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /12 of 40 nixes/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /click one to see who nixed whom/);
   assert.match(await page.locator('#nix-map .loc-note').textContent(), /roughly 11 km area/);
 
-  // A bubble's popup lists who nixed whom in that area.
-  await bubbles.filter({ hasText: '9' }).click();
+  // A pin's popup lists who nixed whom in that area.
+  await pins.filter({ hasText: '9' }).click();
   const popup = page.locator('#nix-map .leaflet-popup-content');
   await popup.getByText('Wanda nixed Bob').waitFor({ timeout: 5_000 });
   assert.match(await popup.textContent(), /Uwe nixed Bob/);
@@ -195,13 +209,13 @@ test('the statistics page maps nixes and filters them by range and nixer', withA
 
   // The range toggle on the page drives the map too.
   await page.getByRole('button', { name: '90 days' }).click();
-  await page.locator('#nix-map .nix-bubble').nth(1).waitFor();
+  await page.locator('#nix-map .nix-pin').nth(1).waitFor();
   assert.ok(heatUrls.some((s) => s.includes('range=90d')), `range change refetches: ${heatUrls.join(' ')}`);
 
   // …and so does the nixer filter, down to a single nixer's own cells.
   await page.locator('#loc-user').click();
   await page.getByRole('option', { name: 'Zoe' }).click();
-  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-bubble').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll('#nix-map .nix-pin').length === 1);
   assert.ok(heatUrls.some((s) => s.includes('user=3')), `nixer filter refetches: ${heatUrls.join(' ')}`);
   assert.match(await page.locator('#nix-map .loc-head .sub').textContent(), /3 of 40 nixes/);
 }));
@@ -225,7 +239,7 @@ test('the map says so when a range holds no location data', withApp(async (ctx) 
   await page.goto(ctx.url + '/stats', { waitUntil: 'domcontentloaded' });
   await page.locator('#nix-map').waitFor({ timeout: 10_000 });
   await page.getByText(/No located nixes in this range yet/).waitFor({ timeout: 10_000 });
-  assert.strictEqual(await page.locator('#nix-map .nix-bubble').count(), 0);
+  assert.strictEqual(await page.locator('#nix-map .nix-pin').count(), 0);
 }));
 
 test('the settings switch turns recording off and on again', withApp(async (ctx) => {

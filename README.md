@@ -87,7 +87,7 @@ serves aggregated cells, never a position: ~1.1 km cells once at least 2 nixes
 from 2 distinct nixers back one (or 2 of one nixer's own when filtered to
 them), and a ~11 km cell for anything thinner — down to a single fix — so a
 lone nixer still shows up as a rough area. Each cell also carries the nixes
-behind it (`nixer`, `target`, `at`), which is what the bubble's popup lists;
+behind it (`nixer`, `target`, `at`), which is what the pin's popup lists;
 those pairs are already public on the board. The map draws one numbered
-bubble per cell — sized by the count, dashed when the cell is only known to
-~11 km — with Leaflet on OpenStreetMap raster tiles.
+pin per cell — the tip on the cell, sized by the count, dashed when the cell
+is only known to ~11 km — with Leaflet on OpenStreetMap raster tiles.

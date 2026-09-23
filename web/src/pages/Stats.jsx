@@ -39,12 +39,12 @@ const TOOLTIP_STYLE = {
   fontVariantNumeric: 'tabular-nums',
 };
 
-// The map's empty state. Every located nix produces a bubble (thin data as a
+// The map's empty state. Every located nix produces a pin (thin data as a
 // ~11 km area), so this is really the "nothing located here yet" case.
 function emptyMapText({ nixes, located }) {
   if (!nixes) return 'No nixes in this range yet.';
   return located
-    ? 'No bubble to draw for these nixes yet.'
+    ? 'No pin to draw for these nixes yet.'
     : 'No located nixes in this range yet — the map appears with the first one.';
 }
 
@@ -187,8 +187,8 @@ export default function Stats() {
               <>
                 <NixMap cells={locs.cells} cellDegrees={locs.cellDegrees} />
                 <p className="loc-note">
-                  Each bubble is one area: the number is how many nixes landed there, and you can
-                  click one to see who nixed whom. A bubble is drawn dashed while it is only known
+                  Each pin is one area: the number is how many nixes landed there, and you can
+                  click one to see who nixed whom. A pin is drawn dashed while it is only known
                   to a roughly 11 km area, and solid once {solidRule} land within the same
                   about-a-kilometre cell. Individual positions are never shown.
                 </p>

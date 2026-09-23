@@ -5,28 +5,31 @@ import 'leaflet/dist/leaflet.css';
 /**
  * Where nixes happen (#13).
  *
- * One bubble per aggregated cell: the number inside is how many nixes landed
- * there, and the bubble grows with it. The client never sees a single
- * position — the server only ever hands over cells. Clicking a bubble lists
- * who nixed whom inside it. Thin data (down to a lone fix) is published as a
- * ~11 km area, which is why such bubbles carry a dashed ring.
+ * One pin per aggregated cell: the tip sits on the cell, the number in the
+ * head is how many nixes landed there, and the pin grows with it. The client
+ * never sees a single position — the server only ever hands over cells.
+ * Clicking a pin lists who nixed whom inside it. Thin data (down to a lone
+ * fix) is published as a ~11 km area, which is why such pins are dashed.
  */
 
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 // Metres per degree of latitude — close enough to name a cell's size.
 const METRES_PER_DEGREE = 111320;
-const MIN_BUBBLE = 26;
-const MAX_BUBBLE = 56;
+const MIN_PIN = 26;
+const MAX_PIN = 56;
 // Density steps, styled in style.css off the theme's accent gradient.
 const LEVELS = 5;
+// The head is a square with three rounded corners, rotated 45°, so the sharp
+// fourth corner becomes the tip: 1/√2 of the box sits below the head's centre.
+const TIP_RATIO = Math.SQRT1_2;
 
 function level(t) {
   return Math.min(LEVELS - 1, Math.max(0, Math.round(t * (LEVELS - 1))));
 }
 
-function bubblePx(n, max) {
-  return Math.round(MIN_BUBBLE + Math.sqrt(n / max) * (MAX_BUBBLE - MIN_BUBBLE));
+function pinPx(n, max) {
+  return Math.round(MIN_PIN + Math.sqrt(n / max) * (MAX_PIN - MIN_PIN));
 }
 
 /**
@@ -101,14 +104,14 @@ export default function NixMap({ cells, cellDegrees = 0.01 }) {
     const bounds = L.latLngBounds([]);
 
     for (const cell of cells) {
-      const size = bubblePx(cell.n, max);
+      const size = pinPx(cell.n, max);
       const coarse = (cell.degrees || cellDegrees) > cellDegrees;
       const t = Math.sqrt(cell.n / max);
       const icon = L.divIcon({
-        className: `nix-bubble lvl-${level(t)}${coarse ? ' is-coarse' : ''}`,
-        html: `<span style="width:${size}px;height:${size}px">${cell.n}</span>`,
+        className: `nix-pin lvl-${level(t)}${coarse ? ' is-coarse' : ''}`,
+        html: `<span style="width:${size}px;height:${size}px"><i>${cell.n}</i></span>`,
         iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
+        iconAnchor: [size / 2, Math.round(size / 2 + size * TIP_RATIO)],
       });
       L.marker([cell.lat, cell.lon], { icon, title: `${cell.n} nixes here` })
         .bindPopup(() => popupNode(cell), { minWidth: 200 })

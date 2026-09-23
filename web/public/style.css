@@ -748,35 +748,43 @@ input::placeholder { color: var(--placeholder); }
 .nix-map .leaflet-popup-close-button { color: var(--text-2); }
 @media (max-width: 720px) { .nix-map { height: 280px; } }
 
-/* One bubble per published cell: the count is the label, the size is the
-   volume, and the fill slides along the theme's accent gradient as the cell
-   fills up (lvl-0 = accent, lvl-4 = accent-2). A dashed ring means the server
-   could only round it to ~11 km. Scoped to .nix-map so the rules outrank
-   leaflet.css's .leaflet-div-icon (white box + grey border on every icon). */
-.nix-map .nix-bubble { background: none; border: none; }
-.nix-map .nix-bubble span {
+/* One pin per published cell: the tip sits on the cell, the count is the
+   label in the head, the size is the volume, and the fill slides along the
+   theme's accent gradient as the cell fills up (lvl-0 = accent, lvl-4 =
+   accent-2). A dashed outline means the server could only round it to ~11 km.
+   The teardrop is the square head rotated 45° so its sharp corner (bottom
+   left) points down at the cell; the label is rotated back so it stays
+   upright. Scoped to .nix-map so the rules outrank leaflet.css's
+   .leaflet-div-icon (white box + grey border on every icon). */
+.nix-map .nix-pin { background: none; border: none; }
+.nix-map .nix-pin span {
   display: flex; align-items: center; justify-content: center;
-  box-sizing: border-box; border: 2px solid transparent; border-radius: 50%;
+  box-sizing: border-box; border: 2px solid transparent; border-radius: 50% 50% 50% 0;
   background: var(--grad-accent);
   background-size: 300% 100%;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 0 1px var(--ring-soft), 0 6px 18px -6px rgb(var(--ink-rgb) / .5);
+  transition: transform .15s ease, box-shadow .18s ease, background-position .25s ease;
+}
+.nix-map .nix-pin span i {
+  font-style: normal;
+  transform: rotate(45deg);
   color: var(--accent-ink);
   font-family: var(--font-display);
   font-size: .82rem; font-weight: 700;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 1px var(--ring-soft), 0 6px 18px -6px rgb(var(--ink-rgb) / .5);
-  transition: transform .15s ease, box-shadow .18s ease, background-position .25s ease;
 }
 /* Density = how far the window sits along accent → accent-2 (same ramp the
    brand mark and the primary button use). */
-.nix-map .nix-bubble.lvl-0 span { background-position: 0% 0; }
-.nix-map .nix-bubble.lvl-1 span { background-position: 25% 0; }
-.nix-map .nix-bubble.lvl-2 span { background-position: 50% 0; }
-.nix-map .nix-bubble.lvl-3 span { background-position: 75% 0; }
-.nix-map .nix-bubble.lvl-4 span { background-position: 100% 0; }
+.nix-map .nix-pin.lvl-0 span { background-position: 0% 0; }
+.nix-map .nix-pin.lvl-1 span { background-position: 25% 0; }
+.nix-map .nix-pin.lvl-2 span { background-position: 50% 0; }
+.nix-map .nix-pin.lvl-3 span { background-position: 75% 0; }
+.nix-map .nix-pin.lvl-4 span { background-position: 100% 0; }
 @media (hover: hover) {
-  .nix-map .nix-bubble:hover span { transform: scale(1.07); box-shadow: var(--glow); }
+  .nix-map .nix-pin:hover span { transform: rotate(-45deg) scale(1.07); box-shadow: var(--glow); }
 }
-.nix-map .nix-bubble.is-coarse span { border-style: dashed; border-color: var(--accent-ink); }
+.nix-map .nix-pin.is-coarse span { border-style: dashed; border-color: var(--accent-ink); }
 
 .nix-pop { min-width: 190px; font-size: .78rem; }
 .nix-pop strong { display: block; margin-bottom: 6px; }
